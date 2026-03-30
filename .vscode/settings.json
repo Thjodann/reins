@@ -2,5 +2,12 @@
     "cmake.ignoreCMakeListsMissing": true,
     "cSpell.words": [
         "Ollama"
-    ]
+    ],
+    "dart.openDevTools": "flutter",
+    "dart.devToolsLocation": {
+        "default": "active",
+        "inspector": "sidebar"
+    },
+    "dart.devToolsBrowser": "default",
+    "dart.shareDevToolsWithFlutter": true
 }

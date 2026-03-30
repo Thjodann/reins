@@ -1,0 +1,6 @@
+[
+  {
+    "key": "shift+`",
+    "command": "workbench.action.debug.start"
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Flutter: Build macOS (Release) + Open",
+      "type": "shell",
+      "command": "flutter build macos && open \"build/macos/Build/Products/Release/Reins.app\"",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Flutter: Run macOS",
+      "type": "shell",
+      "command": "pkill -x Reins || true; flutter run -d macos",
+      "problemMatcher": []
+    }
+  ]
+}
