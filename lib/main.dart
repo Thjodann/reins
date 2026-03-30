@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:reins/Constants/constants.dart';
 import 'package:reins/Models/settings_route_arguments.dart';
@@ -12,7 +13,7 @@ import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:reins/Utils/request_review_helper.dart';
 import 'package:responsive_framework/responsive_framework.dart';
-import 'dart:io' show Platform;
+import 'dart:io' show FileSystemException, Platform;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
@@ -35,17 +36,14 @@ void main() async {
 
   Hive.registerAdapter(MaterialColorAdapter());
 
-  await Hive.openBox('settings');
+  await _openSettingsBoxWithRetry();
 
   // Initialize RequestReviewHelper and request review if needed
   final reviewHelper = await RequestReviewHelper.initialize();
 
   await reviewHelper.incrementCount(isLaunch: true);
 
-  final inAppReview = InAppReview.instance;
-  if (await inAppReview.isAvailable() && reviewHelper.shouldRequestReview()) {
-    await inAppReview.requestReview();
-  }
+  await _requestInAppReviewIfAvailable(reviewHelper);
 
   runApp(
     MultiProvider(
@@ -71,6 +69,40 @@ void main() async {
       child: const ReinsApp(),
     ),
   );
+}
+
+Future<void> _requestInAppReviewIfAvailable(
+  RequestReviewHelper reviewHelper,
+) async {
+  final inAppReview = InAppReview.instance;
+  if (!await inAppReview.isAvailable() || !reviewHelper.shouldRequestReview()) {
+    return;
+  }
+
+  try {
+    await inAppReview.requestReview();
+  } on PlatformException {
+    // Some desktop contexts cannot surface the native review prompt.
+  }
+}
+
+Future<void> _openSettingsBoxWithRetry() async {
+  const maxAttempts = 5;
+  const retryDelay = Duration(milliseconds: 250);
+
+  for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await Hive.openBox('settings');
+      return;
+    } on FileSystemException catch (error) {
+      final isLockConflict =
+          error.message.toLowerCase().contains('lock failed') ||
+          error.osError?.errorCode == 35;
+      final hasRetryLeft = attempt < maxAttempts;
+      if (!isLockConflict || !hasRetryLeft) rethrow;
+      await Future<void>.delayed(retryDelay);
+    }
+  }
 }
 
 class ReinsApp extends StatelessWidget {
