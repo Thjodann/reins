@@ -23,7 +23,7 @@ class DatabaseService {
   Future<void> open(String databaseFile) async {
     _db = await openDatabase(
       path.join(await getDatabasesPathForPlatform(), databaseFile),
-      version: 2,
+      version: 3,
       onCreate: (Database db, int version) async {
         await db.execute('''CREATE TABLE IF NOT EXISTS chats (
 chat_id TEXT PRIMARY KEY,
@@ -65,6 +65,17 @@ END;''');
           await db.execute('ALTER TABLE chats ADD COLUMN profile_id TEXT;');
           await _createChatbotProfilesTable(db);
         }
+        if (oldVersion >= 2 && oldVersion < 3) {
+          await db.execute('ALTER TABLE chatbot_profiles ADD COLUMN speaking_style TEXT;');
+          await db.execute('ALTER TABLE chatbot_profiles ADD COLUMN tone TEXT;');
+          await db.execute('ALTER TABLE chatbot_profiles ADD COLUMN interests TEXT;');
+          await db.execute('ALTER TABLE chatbot_profiles ADD COLUMN backstory TEXT;');
+          await db.execute('ALTER TABLE chatbot_profiles ADD COLUMN relationship_to_user TEXT;');
+          await db.execute('ALTER TABLE chatbot_profiles ADD COLUMN goals TEXT;');
+          await db.execute('ALTER TABLE chatbot_profiles ADD COLUMN boundaries TEXT;');
+          await db.execute('ALTER TABLE chatbot_profiles ADD COLUMN quirks TEXT;');
+          await db.execute('ALTER TABLE chatbot_profiles ADD COLUMN catchphrases TEXT;');
+        }
       },
     );
   }
@@ -77,6 +88,15 @@ age INTEGER,
 profession TEXT NOT NULL,
 bio TEXT NOT NULL,
 traits TEXT,
+speaking_style TEXT,
+tone TEXT,
+interests TEXT,
+backstory TEXT,
+relationship_to_user TEXT,
+goals TEXT,
+boundaries TEXT,
+quirks TEXT,
+catchphrases TEXT,
 avatar_path TEXT,
 is_default INTEGER NOT NULL DEFAULT 0,
 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

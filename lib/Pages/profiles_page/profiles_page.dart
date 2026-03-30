@@ -107,6 +107,15 @@ class _ProfilesPageState extends State<ProfilesPage> {
       profession: draft.profession,
       bio: draft.bio,
       traits: draft.traits,
+      speakingStyle: draft.speakingStyle,
+      tone: draft.tone,
+      interests: draft.interests,
+      backstory: draft.backstory,
+      relationshipToUser: draft.relationshipToUser,
+      goals: draft.goals,
+      boundaries: draft.boundaries,
+      quirks: draft.quirks,
+      catchphrases: draft.catchphrases,
       avatarPath: draft.avatarPath,
     );
 
@@ -129,6 +138,24 @@ class _ProfilesPageState extends State<ProfilesPage> {
       bio: draft.bio,
       traits: draft.traits,
       clearTraits: draft.traits == null || draft.traits!.isEmpty,
+      speakingStyle: draft.speakingStyle,
+      clearSpeakingStyle: draft.speakingStyle == null || draft.speakingStyle!.isEmpty,
+      tone: draft.tone,
+      clearTone: draft.tone == null || draft.tone!.isEmpty,
+      interests: draft.interests,
+      clearInterests: draft.interests == null || draft.interests!.isEmpty,
+      backstory: draft.backstory,
+      clearBackstory: draft.backstory == null || draft.backstory!.isEmpty,
+      relationshipToUser: draft.relationshipToUser,
+      clearRelationshipToUser: draft.relationshipToUser == null || draft.relationshipToUser!.isEmpty,
+      goals: draft.goals,
+      clearGoals: draft.goals == null || draft.goals!.isEmpty,
+      boundaries: draft.boundaries,
+      clearBoundaries: draft.boundaries == null || draft.boundaries!.isEmpty,
+      quirks: draft.quirks,
+      clearQuirks: draft.quirks == null || draft.quirks!.isEmpty,
+      catchphrases: draft.catchphrases,
+      clearCatchphrases: draft.catchphrases == null || draft.catchphrases!.isEmpty,
       avatarPath: draft.avatarPath,
       clearAvatarPath: draft.avatarPath == null,
       isDefault: draft.isDefault,
@@ -189,6 +216,15 @@ class _ProfileEditorPageState extends State<_ProfileEditorPage> {
   late final TextEditingController _professionController;
   late final TextEditingController _bioController;
   late final TextEditingController _traitsController;
+  late final TextEditingController _speakingStyleController;
+  late final TextEditingController _toneController;
+  late final TextEditingController _interestsController;
+  late final TextEditingController _backstoryController;
+  late final TextEditingController _relationshipToUserController;
+  late final TextEditingController _goalsController;
+  late final TextEditingController _boundariesController;
+  late final TextEditingController _quirksController;
+  late final TextEditingController _catchphrasesController;
 
   String? _avatarPath;
   late bool _isDefault;
@@ -206,6 +242,15 @@ class _ProfileEditorPageState extends State<_ProfileEditorPage> {
     _professionController = TextEditingController(text: widget.initialProfile?.profession ?? '');
     _bioController = TextEditingController(text: widget.initialProfile?.bio ?? '');
     _traitsController = TextEditingController(text: widget.initialProfile?.traits ?? '');
+    _speakingStyleController = TextEditingController(text: widget.initialProfile?.speakingStyle ?? '');
+    _toneController = TextEditingController(text: widget.initialProfile?.tone ?? '');
+    _interestsController = TextEditingController(text: widget.initialProfile?.interests ?? '');
+    _backstoryController = TextEditingController(text: widget.initialProfile?.backstory ?? '');
+    _relationshipToUserController = TextEditingController(text: widget.initialProfile?.relationshipToUser ?? '');
+    _goalsController = TextEditingController(text: widget.initialProfile?.goals ?? '');
+    _boundariesController = TextEditingController(text: widget.initialProfile?.boundaries ?? '');
+    _quirksController = TextEditingController(text: widget.initialProfile?.quirks ?? '');
+    _catchphrasesController = TextEditingController(text: widget.initialProfile?.catchphrases ?? '');
     _avatarPath = widget.initialProfile?.avatarPath;
     _isDefault = widget.initialProfile?.isDefault ?? false;
   }
@@ -217,6 +262,15 @@ class _ProfileEditorPageState extends State<_ProfileEditorPage> {
     _professionController.dispose();
     _bioController.dispose();
     _traitsController.dispose();
+    _speakingStyleController.dispose();
+    _toneController.dispose();
+    _interestsController.dispose();
+    _backstoryController.dispose();
+    _relationshipToUserController.dispose();
+    _goalsController.dispose();
+    _boundariesController.dispose();
+    _quirksController.dispose();
+    _catchphrasesController.dispose();
     super.dispose();
   }
 
@@ -300,6 +354,105 @@ class _ProfileEditorPageState extends State<_ProfileEditorPage> {
                       maxLines: 6,
                       textCapitalization: TextCapitalization.sentences,
                       decoration: const InputDecoration(labelText: 'Traits', hintText: 'Optional style/tone guidance'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _speakingStyleController,
+                      minLines: 1,
+                      maxLines: 4,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Speaking Style',
+                        hintText: 'How they tend to phrase responses',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _toneController,
+                      minLines: 1,
+                      maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Tone',
+                        hintText: 'Friendly, formal, playful, direct, etc.',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _interestsController,
+                      minLines: 1,
+                      maxLines: 4,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Interests',
+                        hintText: 'Topics this persona is excited about',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _backstoryController,
+                      minLines: 2,
+                      maxLines: 6,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Backstory',
+                        hintText: 'Optional background for character depth',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _relationshipToUserController,
+                      minLines: 1,
+                      maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Relationship to User',
+                        hintText: 'Coach, mentor, teammate, friend, etc.',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _goalsController,
+                      minLines: 1,
+                      maxLines: 4,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Goals',
+                        hintText: 'What the persona tries to optimize for',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _boundariesController,
+                      minLines: 1,
+                      maxLines: 4,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Boundaries',
+                        hintText: 'Limits this persona should respect',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _quirksController,
+                      minLines: 1,
+                      maxLines: 4,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Quirks',
+                        hintText: 'Small mannerisms or unique behavior',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _catchphrasesController,
+                      minLines: 1,
+                      maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Catchphrases',
+                        hintText: 'Optional signature phrases',
+                      ),
                     ),
                     const SizedBox(height: 8),
                     SwitchListTile(
@@ -395,6 +548,17 @@ class _ProfileEditorPageState extends State<_ProfileEditorPage> {
         profession: profession,
         bio: bio,
         traits: _traitsController.text.trim().isEmpty ? null : _traitsController.text.trim(),
+        speakingStyle: _speakingStyleController.text.trim().isEmpty ? null : _speakingStyleController.text.trim(),
+        tone: _toneController.text.trim().isEmpty ? null : _toneController.text.trim(),
+        interests: _interestsController.text.trim().isEmpty ? null : _interestsController.text.trim(),
+        backstory: _backstoryController.text.trim().isEmpty ? null : _backstoryController.text.trim(),
+        relationshipToUser: _relationshipToUserController.text.trim().isEmpty
+            ? null
+            : _relationshipToUserController.text.trim(),
+        goals: _goalsController.text.trim().isEmpty ? null : _goalsController.text.trim(),
+        boundaries: _boundariesController.text.trim().isEmpty ? null : _boundariesController.text.trim(),
+        quirks: _quirksController.text.trim().isEmpty ? null : _quirksController.text.trim(),
+        catchphrases: _catchphrasesController.text.trim().isEmpty ? null : _catchphrasesController.text.trim(),
         avatarPath: _avatarPath,
         isDefault: _isDefault,
       ),
@@ -408,6 +572,15 @@ class _ProfileDraft {
   final String profession;
   final String bio;
   final String? traits;
+  final String? speakingStyle;
+  final String? tone;
+  final String? interests;
+  final String? backstory;
+  final String? relationshipToUser;
+  final String? goals;
+  final String? boundaries;
+  final String? quirks;
+  final String? catchphrases;
   final String? avatarPath;
   final bool isDefault;
 
@@ -417,6 +590,15 @@ class _ProfileDraft {
     required this.profession,
     required this.bio,
     required this.traits,
+    required this.speakingStyle,
+    required this.tone,
+    required this.interests,
+    required this.backstory,
+    required this.relationshipToUser,
+    required this.goals,
+    required this.boundaries,
+    required this.quirks,
+    required this.catchphrases,
     required this.avatarPath,
     required this.isDefault,
   });

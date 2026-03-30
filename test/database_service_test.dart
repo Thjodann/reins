@@ -129,6 +129,15 @@ void main() async {
       profession: 'Engineer',
       bio: 'Helps users with concise answers.',
       traits: 'Thoughtful and pragmatic',
+      speakingStyle: 'Brief and structured',
+      tone: 'Calm and encouraging',
+      interests: 'Systems design, automation',
+      backstory: 'Former team lead turned AI companion',
+      relationshipToUser: 'Collaborative copilot',
+      goals: 'Keep the user focused and productive',
+      boundaries: 'Avoid legal/medical certainty',
+      quirks: 'Occasionally uses short checklists',
+      catchphrases: 'Let us break it down.',
     );
 
     final created = await service.createChatbotProfile(profile, isDefault: true);
@@ -138,6 +147,8 @@ void main() async {
     expect(fetched, isNotNull);
     expect(fetched!.name, 'Test Profile');
     expect(fetched.profession, 'Engineer');
+    expect(fetched.speakingStyle, 'Brief and structured');
+    expect(fetched.relationshipToUser, 'Collaborative copilot');
     expect(defaultProfile?.id, created.id);
   });
 
@@ -197,15 +208,16 @@ void main() async {
   });
 
   test("Test database get all chats", () async {
-    await service.createChat(model);
+    final createdChat = await service.createChat(model);
     final chats = await service.getAllChats();
 
     if (chats.isNotEmpty) {
-      expect(chats.first.id, isNotEmpty);
-      expect(chats.first.model, model);
-      expect(chats.first.title, "New Chat");
-      expect(chats.first.systemPrompt, isNull);
-      expect(chats.first.options.toJson(), OllamaChatOptions().toJson());
+      final matchingChat = chats.where((chat) => chat.id == createdChat.id).first;
+      expect(matchingChat.id, isNotEmpty);
+      expect(matchingChat.model, model);
+      expect(matchingChat.title, "New Chat");
+      expect(matchingChat.systemPrompt, isNull);
+      expect(matchingChat.options.toJson(), OllamaChatOptions().toJson());
     }
   }, retry: 5);
 
