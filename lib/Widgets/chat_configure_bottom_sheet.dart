@@ -41,7 +41,6 @@ class _ChatConfigureBottomSheetContent extends StatefulWidget {
   final ChatConfigureArguments arguments;
 
   const _ChatConfigureBottomSheetContent({
-    super.key,
     required this.arguments,
   });
 
@@ -266,7 +265,7 @@ class __ChatConfigureBottomSheetContentState extends State<_ChatConfigureBottomS
 }
 
 class _RenameButton extends StatelessWidget {
-  const _RenameButton({super.key});
+  const _RenameButton();
 
   @override
   Widget build(BuildContext context) {
@@ -332,7 +331,7 @@ class _RenameButton extends StatelessWidget {
 }
 
 class _SaveAsNewModelButton extends StatelessWidget {
-  const _SaveAsNewModelButton({super.key});
+  const _SaveAsNewModelButton();
 
   @override
   Widget build(BuildContext context) {
@@ -464,7 +463,7 @@ class _SaveAsNewModelDialogState extends State<_SaveAsNewModelDialog> {
 }
 
 class _DeleteButton extends StatelessWidget {
-  const _DeleteButton({super.key});
+  const _DeleteButton();
 
   @override
   Widget build(BuildContext context) {

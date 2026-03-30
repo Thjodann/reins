@@ -18,7 +18,7 @@ class ReinsMainPage extends StatelessWidget {
 }
 
 class _ReinsMobileMainPage extends StatelessWidget {
-  const _ReinsMobileMainPage({super.key});
+  const _ReinsMobileMainPage();
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +31,7 @@ class _ReinsMobileMainPage extends StatelessWidget {
 }
 
 class _ReinsLargeMainPage extends StatelessWidget {
-  const _ReinsLargeMainPage({super.key});
+  const _ReinsLargeMainPage();
 
   @override
   Widget build(BuildContext context) {
