@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:async/async.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:reins/Models/chat_model.dart';
+import 'package:reins/Models/chat_model_provider.dart';
 import 'package:reins/Models/model_capabilities.dart';
-
-import 'package:reins/Models/ollama_model.dart';
 import 'package:reins/Models/ollama_request_state.dart';
 import 'package:reins/Providers/chat_provider.dart';
 import 'package:reins/Widgets/ollama_bottom_sheet_header.dart';
@@ -28,8 +28,8 @@ class _ModelSelectionBottomSheetState extends State<ModelSelectionBottomSheet> {
 
   late final ChatProvider _chatProvider;
 
-  OllamaModel? _selectedModel;
-  List<OllamaModel> _models = [];
+  ChatModel? _selectedModel;
+  List<ChatModel> _models = [];
 
   var _state = OllamaRequestState.uninitialized;
   late CancelableOperation _fetchOperation;
@@ -56,10 +56,10 @@ class _ModelSelectionBottomSheetState extends State<ModelSelectionBottomSheet> {
     super.dispose();
   }
 
-  OllamaModel? _findModelByName(String? name) {
+  ChatModel? _findModelByName(String? name) {
     if (name == null) return null;
     try {
-      return _models.firstWhere((m) => m.name == name);
+      return _models.firstWhere((m) => m.id == name);
     } catch (_) {
       return null;
     }
@@ -148,7 +148,7 @@ class _ModelSelectionBottomSheetState extends State<ModelSelectionBottomSheet> {
         onRefresh: () async {
           _fetchOperation = CancelableOperation.fromFuture(_fetchModels());
         },
-        child: RadioGroup<OllamaModel>(
+        child: RadioGroup<ChatModel>(
           groupValue: _selectedModel,
           onChanged: (model) => setState(() => _selectedModel = model),
           child: ListView.builder(
@@ -166,7 +166,7 @@ class _ModelSelectionBottomSheetState extends State<ModelSelectionBottomSheet> {
 }
 
 class _ModelListTile extends StatelessWidget {
-  final OllamaModel model;
+  final ChatModel model;
 
   const _ModelListTile({required this.model});
 
@@ -175,22 +175,41 @@ class _ModelListTile extends StatelessWidget {
     final theme = Theme.of(context);
     final capabilities = model.capabilities;
 
-    return RadioListTile<OllamaModel>(
+    return RadioListTile<ChatModel>(
       value: model,
       title: Text(model.name),
-      subtitle: model.parameterSize.isNotEmpty
+      subtitle: model.subtitle.isNotEmpty
           ? Text(
-              model.parameterSize,
+              model.subtitle,
               style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             )
           : null,
-      secondary: capabilities != null
-          ? Row(
-              spacing: 8,
-              mainAxisSize: MainAxisSize.min,
-              children: _buildCapabilityChips(capabilities),
-            )
-          : null,
+      secondary: _buildSecondary(context, capabilities),
+      toggleable: true,
+    );
+  }
+
+  Widget? _buildSecondary(BuildContext context, ModelCapabilities? capabilities) {
+    final providerChip = Chip(
+      label: Text(
+        model.provider.displayName,
+        style: Theme.of(context).textTheme.labelSmall,
+      ),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+
+    if (capabilities == null || model.provider != ChatModelProvider.ollama) {
+      return providerChip;
+    }
+
+    return Row(
+      spacing: 8,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        providerChip,
+        ..._buildCapabilityChips(capabilities),
+      ],
     );
   }
 
@@ -240,13 +259,13 @@ class _CapabilityChip extends StatelessWidget {
 
 /// Shows a model selection bottom sheet and returns the selected model.
 ///
-/// Returns the selected [OllamaModel], or the current model if cancelled.
-Future<OllamaModel?> showModelSelectionBottomSheet({
+/// Returns the selected [ChatModel], or the current model if cancelled.
+Future<ChatModel?> showModelSelectionBottomSheet({
   required BuildContext context,
   required String title,
   String? currentModelName,
 }) async {
-  return await showModalBottomSheet<OllamaModel?>(
+  return await showModalBottomSheet<ChatModel?>(
     context: context,
     builder: (context) {
       return ModelSelectionBottomSheet(title: title, currentModelName: currentModelName);

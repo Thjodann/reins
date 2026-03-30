@@ -8,10 +8,10 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:reins/Constants/constants.dart';
 import 'package:reins/Models/chat_preset.dart';
+import 'package:reins/Models/chat_model.dart';
 import 'package:reins/Models/ollama_chat.dart';
 import 'package:reins/Models/ollama_exception.dart';
 import 'package:reins/Models/ollama_message.dart';
-import 'package:reins/Models/ollama_model.dart';
 import 'package:reins/Providers/chat_provider.dart';
 import 'package:reins/Services/services.dart';
 
@@ -19,14 +19,17 @@ class ChatPageViewModel extends ChangeNotifier {
   final ChatProvider _chatProvider;
   final PermissionService _permissionService;
   final ImageService _imageService;
+  final SecureStorageService _secureStorageService;
 
   ChatPageViewModel({
     required ChatProvider chatProvider,
     required PermissionService permissionService,
     required ImageService imageService,
+    required SecureStorageService secureStorageService,
   })  : _chatProvider = chatProvider,
         _permissionService = permissionService,
-        _imageService = imageService {
+        _imageService = imageService,
+        _secureStorageService = secureStorageService {
     _initialize();
   }
 
@@ -35,8 +38,8 @@ class ChatPageViewModel extends ChangeNotifier {
   // ============================================================
 
   /// The selected model for new chats
-  OllamaModel? _selectedModel;
-  OllamaModel? get selectedModel => _selectedModel;
+  ChatModel? _selectedModel;
+  ChatModel? get selectedModel => _selectedModel;
 
   /// The list of chat presets
   List<ChatPreset> _presets = ChatPresets.randomPresets;
@@ -53,9 +56,10 @@ class ChatPageViewModel extends ChangeNotifier {
 
   /// The Hive settings subscription
   late final StreamSubscription _settingsSubscription;
+  bool _hasOpenAiApiKey = false;
 
   bool get isServerConfigured {
-    return Hive.box('settings').get('serverAddress') != null;
+    return Hive.box('settings').get('serverAddress') != null || _hasOpenAiApiKey;
   }
 
   // ============================================================
@@ -74,6 +78,8 @@ class ChatPageViewModel extends ChangeNotifier {
       _selectedModel = null;
       notifyListeners();
     });
+
+    _loadOpenAiKeyStatus();
 
     // Listen for app exit to delete unused attached images
     _appLifecycleListener = AppLifecycleListener(onExitRequested: () async {
@@ -134,7 +140,7 @@ class ChatPageViewModel extends ChangeNotifier {
   }
 
   /// Fetches available models from the server
-  Future<List<OllamaModel>> fetchAvailableModels() async {
+  Future<List<ChatModel>> fetchAvailableModels() async {
     return await _chatProvider.fetchAvailableModels();
   }
 
@@ -143,7 +149,7 @@ class ChatPageViewModel extends ChangeNotifier {
   // ============================================================
 
   /// Sets the selected model
-  void setSelectedModel(OllamaModel? model) {
+  void setSelectedModel(ChatModel? model) {
     _selectedModel = model;
     notifyListeners();
   }
@@ -236,6 +242,8 @@ class ChatPageViewModel extends ChangeNotifier {
     required Future<void> Function() onModelSelectionRequired,
     required void Function() onServerNotConfigured,
   }) async {
+    await _loadOpenAiKeyStatus(notify: false);
+
     // Early return if nothing to send or currently streaming
     if (!hasText || isStreaming) {
       return false;
@@ -288,5 +296,18 @@ class ChatPageViewModel extends ChangeNotifier {
     }
 
     return true;
+  }
+
+  Future<void> _loadOpenAiKeyStatus({bool notify = true}) async {
+    final key = await _secureStorageService.readOpenAiApiKey();
+    final hasKey = key != null && key.trim().isNotEmpty;
+    if (_hasOpenAiApiKey == hasKey) {
+      return;
+    }
+
+    _hasOpenAiApiKey = hasKey;
+    if (notify) {
+      notifyListeners();
+    }
   }
 }

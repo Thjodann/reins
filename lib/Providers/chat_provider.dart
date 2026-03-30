@@ -6,17 +6,22 @@ import 'package:notification_centre/notification_centre.dart';
 
 import 'package:reins/Constants/constants.dart';
 import 'package:reins/Models/chatbot_profile.dart';
+import 'package:reins/Models/chat_model.dart';
+import 'package:reins/Models/chat_model_provider.dart';
 import 'package:reins/Models/chat_configure_arguments.dart';
 import 'package:reins/Models/ollama_chat.dart';
 import 'package:reins/Models/ollama_exception.dart';
 import 'package:reins/Models/ollama_message.dart';
-import 'package:reins/Models/ollama_model.dart';
 import 'package:reins/Services/database_service.dart';
 import 'package:reins/Services/ollama_service.dart';
+import 'package:reins/Services/openai_service.dart';
+import 'package:reins/Services/secure_storage_service.dart';
 
 class ChatProvider extends ChangeNotifier {
   final OllamaService _ollamaService;
+  final OpenAiService _openAiService;
   final DatabaseService _databaseService;
+  final SecureStorageService _secureStorageService;
 
   List<OllamaMessage> _messages = [];
   List<OllamaMessage> get messages => _messages;
@@ -69,9 +74,16 @@ class ChatProvider extends ChangeNotifier {
   /// The chat configuration for the empty chat.
   ChatConfigureArguments? _emptyChatConfiguration;
 
-  ChatProvider({required OllamaService ollamaService, required DatabaseService databaseService})
+  ChatProvider({
+    required OllamaService ollamaService,
+    required OpenAiService openAiService,
+    required DatabaseService databaseService,
+    required SecureStorageService secureStorageService,
+  })
     : _ollamaService = ollamaService,
-      _databaseService = databaseService {
+      _openAiService = openAiService,
+      _databaseService = databaseService,
+      _secureStorageService = secureStorageService {
     _initialize();
   }
 
@@ -126,12 +138,13 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> createNewChat(OllamaModel model, {String? profileId}) async {
+  Future<void> createNewChat(ChatModel model, {String? profileId}) async {
     final resolvedProfileId = profileId ?? _selectedProfileId;
     final profile = _profiles.where((p) => p.id == resolvedProfileId).firstOrNull;
 
     final chat = await _databaseService.createChat(
-      model.name,
+      model.id,
+      provider: model.provider,
       profileId: profile?.id,
       systemPrompt: profile?.toSystemPrompt(),
     );
@@ -153,6 +166,7 @@ class ChatProvider extends ChangeNotifier {
 
   Future<void> updateCurrentChat({
     String? newModel,
+    ChatModelProvider? newProvider,
     String? newTitle,
     String? newSystemPrompt,
     OllamaChatOptions? newOptions,
@@ -161,6 +175,7 @@ class ChatProvider extends ChangeNotifier {
     await updateChat(
       currentChat,
       newModel: newModel,
+      newProvider: newProvider,
       newTitle: newTitle,
       newSystemPrompt: newSystemPrompt,
       newOptions: newOptions,
@@ -174,6 +189,7 @@ class ChatProvider extends ChangeNotifier {
   Future<void> updateChat(
     OllamaChat? chat, {
     String? newModel,
+    ChatModelProvider? newProvider,
     String? newTitle,
     String? newSystemPrompt,
     OllamaChatOptions? newOptions,
@@ -189,6 +205,7 @@ class ChatProvider extends ChangeNotifier {
       await _databaseService.updateChat(
         chat,
         newModel: newModel,
+        newProvider: newProvider,
         newTitle: newTitle,
         newSystemPrompt: newSystemPrompt,
         newOptions: newOptions,
@@ -302,11 +319,11 @@ class ChatProvider extends ChangeNotifier {
     // Notify the listeners to show the thinking indicator
     notifyListeners();
 
-    // Stream the Ollama message
+    // Stream the assistant message
     OllamaMessage? ollamaMessage;
 
     try {
-      ollamaMessage = await _streamOllamaMessage(associatedChat);
+      ollamaMessage = await _streamAssistantMessage(associatedChat);
     } on OllamaException catch (error) {
       _chatErrors[associatedChat.id] = error;
     } on SocketException catch (_) {
@@ -327,10 +344,10 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  Future<OllamaMessage?> _streamOllamaMessage(OllamaChat associatedChat) async {
+  Future<OllamaMessage?> _streamAssistantMessage(OllamaChat associatedChat) async {
     if (_messages.isEmpty) return null;
 
-    final stream = _ollamaService.chatStream(_messages, chat: associatedChat);
+    final stream = await _resolveChatStream(associatedChat);
 
     OllamaMessage? streamingMessage;
     OllamaMessage? receivedMessage;
@@ -377,6 +394,23 @@ class ChatProvider extends ChangeNotifier {
     streamingMessage?.createdAt = DateTime.now();
 
     return streamingMessage;
+  }
+
+  Future<Stream<OllamaMessage>> _resolveChatStream(OllamaChat associatedChat) async {
+    if (associatedChat.provider == ChatModelProvider.openAi) {
+      final apiKey = await _secureStorageService.readOpenAiApiKey();
+      if (apiKey == null || apiKey.trim().isEmpty) {
+        throw OllamaException('OpenAI API key is missing. Add it in API Keys settings.');
+      }
+
+      return _openAiService.chatStream(
+        _messages,
+        chat: associatedChat,
+        apiKey: apiKey,
+      );
+    }
+
+    return _ollamaService.chatStream(_messages, chat: associatedChat);
   }
 
   Future<void> regenerateMessage(OllamaMessage message) async {
@@ -444,8 +478,47 @@ class ChatProvider extends ChangeNotifier {
     _currentChatIndex = 0;
   }
 
-  Future<List<OllamaModel>> fetchAvailableModels() async {
-    return await _ollamaService.listModels();
+  Future<List<ChatModel>> fetchAvailableModels() async {
+    Object? ollamaError;
+    Object? openAiError;
+
+    List<ChatModel> ollamaModels = [];
+    List<ChatModel> openAiModels = [];
+
+    try {
+      final models = await _ollamaService.listModels();
+      ollamaModels = models.map(ChatModel.fromOllamaModel).toList();
+    } catch (error) {
+      ollamaError = error;
+    }
+
+    try {
+      final openAiApiKey = await _secureStorageService.readOpenAiApiKey();
+      if (openAiApiKey != null && openAiApiKey.trim().isNotEmpty) {
+        final modelIds = await _openAiService.listModels(openAiApiKey);
+        openAiModels = modelIds.map(ChatModel.fromOpenAiModelId).toList();
+      }
+    } catch (error) {
+      openAiError = error;
+    }
+
+    final models = <ChatModel>[
+      ...ollamaModels,
+      ...openAiModels,
+    ];
+
+    if (models.isNotEmpty) {
+      return models;
+    }
+
+    if (openAiError is OllamaException) {
+      throw openAiError;
+    }
+    if (ollamaError is OllamaException) {
+      throw ollamaError;
+    }
+
+    throw OllamaException('No available models were found.');
   }
 
   void _updateOllamaServiceAddress() {
@@ -466,6 +539,9 @@ class ChatProvider extends ChangeNotifier {
       // TODO: Empty chat should be saved as a new model.
       throw OllamaException("No chat is selected.");
     }
+    if (associatedChat.provider != ChatModelProvider.ollama) {
+      throw OllamaException('Save as model is available only for Ollama chats.');
+    }
 
     await _ollamaService.createModel(modelName, chat: associatedChat, messages: _messages.toList());
   }
@@ -476,10 +552,17 @@ class ChatProvider extends ChangeNotifier {
     if (associatedChat == null || message == null) return;
 
     // Create a temp chat with necessary system prompt
-    final chat = OllamaChat(model: associatedChat.model, systemPrompt: GenerateTitleConstants.systemPrompt);
+    final titleChat = OllamaChat(
+      model: associatedChat.model,
+      provider: associatedChat.provider,
+      systemPrompt: GenerateTitleConstants.systemPrompt,
+    );
 
     // Generate a title for the message
-    final stream = _ollamaService.generateStream(GenerateTitleConstants.prompt + message.content, chat: chat);
+    final stream = await _resolveTitleStream(
+      chat: titleChat,
+      prompt: GenerateTitleConstants.prompt + message.content,
+    );
 
     var title = "";
     await for (final titleMessage in stream) {
@@ -505,5 +588,30 @@ class ChatProvider extends ChangeNotifier {
 
     // Save the title as the chat title
     await updateChat(associatedChat, newTitle: title.trim());
+  }
+
+  Future<Stream<OllamaMessage>> _resolveTitleStream({
+    required OllamaChat chat,
+    required String prompt,
+  }) async {
+    if (chat.provider == ChatModelProvider.openAi) {
+      final apiKey = await _secureStorageService.readOpenAiApiKey();
+      if (apiKey == null || apiKey.trim().isEmpty) {
+        throw OllamaException('OpenAI API key is missing. Add it in API Keys settings.');
+      }
+
+      return _openAiService.chatStream(
+        [
+          OllamaMessage(
+            prompt,
+            role: OllamaMessageRole.user,
+          ),
+        ],
+        chat: chat,
+        apiKey: apiKey,
+      );
+    }
+
+    return _ollamaService.generateStream(prompt, chat: chat);
   }
 }

@@ -80,7 +80,7 @@ class _ChatPageState extends State<ChatPage> {
         } else {
           return ChatEmpty(
             child: ChatSelectModelButton(
-              currentModelName: _viewModel.selectedModel?.name,
+              currentModelName: _viewModel.selectedModel?.id,
               onPressed: _showModelSelectionBottomSheet,
             ),
           );
@@ -167,7 +167,7 @@ class _ChatPageState extends State<ChatPage> {
     final selectedModel = await showModelSelectionBottomSheet(
       context: context,
       title: "Select a Model",
-      currentModelName: _viewModel.selectedModel?.name,
+      currentModelName: _viewModel.selectedModel?.id,
     );
 
     if (selectedModel != null) {

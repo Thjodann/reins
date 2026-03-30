@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reins/Constants/constants.dart';
+import 'package:reins/Models/chat_model_provider.dart';
 import 'package:reins/Models/chatbot_profile.dart';
 import 'package:reins/Models/ollama_chat.dart';
 import 'package:reins/Models/ollama_message.dart';
@@ -39,6 +40,7 @@ void main() async {
 
     expect(chat.id, isNotEmpty);
     expect(chat.model, model);
+    expect(chat.provider, ChatModelProvider.ollama);
     expect(chat.title, "New Chat");
     expect(chat.systemPrompt, isNull);
     expect(chat.options.toJson(), OllamaChatOptions().toJson());
@@ -50,6 +52,7 @@ void main() async {
     final retrievedChat = (await service.getChat(chat.id))!;
     expect(retrievedChat.id, chat.id);
     expect(retrievedChat.model, chat.model);
+    expect(retrievedChat.provider, chat.provider);
     expect(retrievedChat.title, chat.title);
     expect(retrievedChat.systemPrompt, chat.systemPrompt);
     expect(retrievedChat.options.toJson(), chat.options.toJson());
@@ -62,6 +65,7 @@ void main() async {
 
     final updatedChat = (await service.getChat(chat.id))!;
     expect(updatedChat.model, "llama3.2");
+    expect(updatedChat.provider, ChatModelProvider.ollama);
     expect(updatedChat.title, "New Chat");
     expect(updatedChat.systemPrompt, isNull);
     expect(chat.options.toJson(), OllamaChatOptions().toJson());
@@ -76,6 +80,7 @@ void main() async {
 
     final updatedChat = (await service.getChat(chat.id))!;
     expect(updatedChat.model, model);
+    expect(updatedChat.provider, ChatModelProvider.ollama);
     expect(updatedChat.title, "New Chat");
     expect(updatedChat.systemPrompt, systemPrompt);
     expect(chat.options.toJson(), OllamaChatOptions().toJson());
@@ -102,6 +107,7 @@ void main() async {
 
     final updatedChat = (await service.getChat(chat.id))!;
     expect(updatedChat.model, model);
+    expect(updatedChat.provider, ChatModelProvider.ollama);
     expect(updatedChat.title, "New Chat");
     expect(updatedChat.systemPrompt, isNull);
     expect(updatedChat.options.mirostat, 1);
@@ -296,6 +302,7 @@ void main() async {
       final matchingChat = chats.where((chat) => chat.id == createdChat.id).first;
       expect(matchingChat.id, isNotEmpty);
       expect(matchingChat.model, model);
+      expect(matchingChat.provider, ChatModelProvider.ollama);
       expect(matchingChat.title, "New Chat");
       expect(matchingChat.systemPrompt, isNull);
       expect(matchingChat.options.toJson(), OllamaChatOptions().toJson());

@@ -8,9 +8,9 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'package:reins/Models/ollama_chat.dart';
+import 'package:reins/Models/chat_model.dart';
 import 'package:reins/Models/ollama_exception.dart';
 import 'package:reins/Models/ollama_message.dart';
-import 'package:reins/Models/ollama_model.dart';
 import 'package:reins/Pages/chat_page/chat_page_view_model.dart';
 import 'package:reins/Providers/chat_provider.dart';
 import 'package:reins/Services/services.dart';
@@ -21,6 +21,7 @@ void main() {
   late FakeChatProvider fakeChatProvider;
   late FakePermissionService fakePermissionService;
   late FakeImageService fakeImageService;
+  late FakeSecureStorageService fakeSecureStorageService;
   late ChatPageViewModel viewModel;
 
   setUpAll(() async {
@@ -37,6 +38,7 @@ void main() {
     fakeChatProvider = FakeChatProvider();
     fakePermissionService = FakePermissionService();
     fakeImageService = FakeImageService();
+    fakeSecureStorageService = FakeSecureStorageService();
 
     // Ensure server is configured for most tests
     await Hive.box('settings').put('serverAddress', 'http://localhost:11434');
@@ -45,6 +47,7 @@ void main() {
       chatProvider: fakeChatProvider,
       permissionService: fakePermissionService,
       imageService: fakeImageService,
+      secureStorageService: fakeSecureStorageService,
     );
   });
 
@@ -317,15 +320,8 @@ void main() {
 // Test Helpers
 // ============================================================
 
-OllamaModel createTestModel(String name) {
-  return OllamaModel(
-    name: name,
-    model: name,
-    modifiedAt: DateTime.now(),
-    size: 1000,
-    digest: 'test-digest-$name',
-    parameterSize: '1B',
-  );
+ChatModel createTestModel(String name) {
+  return ChatModel.fromOpenAiModelId(name);
 }
 
 OllamaChat createTestChat(String id) {
@@ -342,13 +338,14 @@ class FakeChatProvider extends ChangeNotifier implements ChatProvider {
   bool _isStreaming = false;
   bool _isThinking = false;
   OllamaException? _currentError;
-  List<OllamaModel> _availableModels = [];
+  List<ChatModel> _availableModels = [];
 
   bool cancelStreamingCalled = false;
   bool retryLastPromptCalled = false;
   bool createNewChatCalled = false;
   bool sendPromptCalled = false;
   bool generateTitleCalled = false;
+  @override
   String? selectedProfileId;
   String? lastSentPrompt;
   List<File>? lastSentImages;
@@ -374,7 +371,7 @@ class FakeChatProvider extends ChangeNotifier implements ChatProvider {
     _currentError = error;
   }
 
-  void setAvailableModels(List<OllamaModel> models) {
+  void setAvailableModels(List<ChatModel> models) {
     _availableModels = models;
   }
 
@@ -408,12 +405,12 @@ class FakeChatProvider extends ChangeNotifier implements ChatProvider {
   }
 
   @override
-  Future<List<OllamaModel>> fetchAvailableModels() async {
+  Future<List<ChatModel>> fetchAvailableModels() async {
     return _availableModels;
   }
 
   @override
-  Future<void> createNewChat(OllamaModel model, {String? profileId}) async {
+  Future<void> createNewChat(ChatModel model, {String? profileId}) async {
     createNewChatCalled = true;
     lastCreateChatProfileId = profileId ?? selectedProfileId;
     _currentChat = createTestChat('new-chat-id');
@@ -492,6 +489,29 @@ class FakeImageService implements ImageService {
   @override
   Future<Directory> getImagesDirectory() async {
     return Directory.systemTemp;
+  }
+}
+
+class FakeSecureStorageService implements SecureStorageService {
+  String? apiKey;
+  bool usingSessionFallback = false;
+
+  @override
+  bool get isUsingSessionFallback => usingSessionFallback;
+
+  @override
+  Future<void> deleteOpenAiApiKey() async {
+    apiKey = null;
+  }
+
+  @override
+  Future<String?> readOpenAiApiKey() async {
+    return apiKey;
+  }
+
+  @override
+  Future<void> writeOpenAiApiKey(String apiKey) async {
+    this.apiKey = apiKey;
   }
 }
 

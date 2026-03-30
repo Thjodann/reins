@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:reins/Constants/constants.dart';
 import 'package:reins/Models/chatbot_profile.dart';
+import 'package:reins/Models/chat_model_provider.dart';
 import 'package:reins/Models/ollama_chat.dart';
 import 'package:reins/Models/ollama_message.dart';
 import 'package:sqflite/sqflite.dart';
@@ -23,11 +24,12 @@ class DatabaseService {
   Future<void> open(String databaseFile) async {
     _db = await openDatabase(
       path.join(await getDatabasesPathForPlatform(), databaseFile),
-      version: 3,
+      version: 4,
       onCreate: (Database db, int version) async {
         await db.execute('''CREATE TABLE IF NOT EXISTS chats (
 chat_id TEXT PRIMARY KEY,
 model TEXT NOT NULL,
+provider TEXT NOT NULL DEFAULT 'ollama',
 chat_title TEXT NOT NULL,
 system_prompt TEXT,
 options TEXT,
@@ -76,6 +78,11 @@ END;''');
           await db.execute('ALTER TABLE chatbot_profiles ADD COLUMN quirks TEXT;');
           await db.execute('ALTER TABLE chatbot_profiles ADD COLUMN catchphrases TEXT;');
         }
+        if (oldVersion < 4) {
+          await db.execute(
+            "ALTER TABLE chats ADD COLUMN provider TEXT NOT NULL DEFAULT 'ollama';",
+          );
+        }
       },
     );
   }
@@ -108,12 +115,18 @@ updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 
   // Chat Operations
 
-  Future<OllamaChat> createChat(String model, {String? systemPrompt, String? profileId}) async {
+  Future<OllamaChat> createChat(
+    String model, {
+    ChatModelProvider provider = ChatModelProvider.ollama,
+    String? systemPrompt,
+    String? profileId,
+  }) async {
     final id = Uuid().v4();
 
     await _db.insert('chats', {
       'chat_id': id,
       'model': model,
+      'provider': provider.value,
       'chat_title': 'New Chat',
       'system_prompt': systemPrompt,
       'options': null,
@@ -136,6 +149,7 @@ updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   Future<void> updateChat(
     OllamaChat chat, {
     String? newModel,
+    ChatModelProvider? newProvider,
     String? newTitle,
     String? newSystemPrompt,
     OllamaChatOptions? newOptions,
@@ -145,6 +159,7 @@ updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       'chats',
       {
         'model': newModel ?? chat.model,
+        'provider': (newProvider ?? chat.provider).value,
         'chat_title': newTitle ?? chat.title,
         'system_prompt': newSystemPrompt ?? chat.systemPrompt,
         'options': newOptions?.toJson() ?? chat.options.toJson(),
@@ -166,7 +181,7 @@ updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 
   Future<List<OllamaChat>> getAllChats() async {
     final List<Map<String, dynamic>> maps = await _db.rawQuery(
-      '''SELECT chats.chat_id, chats.model, chats.chat_title, chats.system_prompt, chats.options, chats.profile_id, MAX(messages.timestamp) AS last_update
+      '''SELECT chats.chat_id, chats.model, chats.provider, chats.chat_title, chats.system_prompt, chats.options, chats.profile_id, MAX(messages.timestamp) AS last_update
 FROM chats
 LEFT JOIN messages ON chats.chat_id = messages.chat_id
 GROUP BY chats.chat_id

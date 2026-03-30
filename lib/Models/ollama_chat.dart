@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
+import 'package:reins/Models/chat_model_provider.dart';
 
 class OllamaChat {
   final String id;
   final String model;
+  final ChatModelProvider provider;
   final String title;
   final String? systemPrompt;
   final String? profileId;
@@ -12,6 +14,7 @@ class OllamaChat {
   OllamaChat({
     String? id,
     required this.model,
+    this.provider = ChatModelProvider.ollama,
     String? title,
     this.systemPrompt,
     this.profileId,
@@ -24,6 +27,7 @@ class OllamaChat {
     return OllamaChat(
       id: map['chat_id'],
       model: map['model'],
+      provider: ChatModelProvider.fromValue(map['provider']),
       title: map['chat_title'],
       systemPrompt: map['system_prompt'],
       profileId: map['profile_id'],

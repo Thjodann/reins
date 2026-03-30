@@ -6,6 +6,8 @@ import 'package:reins/Models/settings_route_arguments.dart';
 import 'package:reins/Pages/chat_page/chat_page_view_model.dart';
 import 'package:reins/Pages/main_page.dart';
 import 'package:reins/Pages/profiles_page/profiles_page.dart';
+import 'package:reins/Pages/settings_page/api_keys_settings_page.dart';
+import 'package:reins/Pages/settings_page/ollama_settings_page.dart';
 import 'package:reins/Pages/settings_page/settings_page.dart';
 import 'package:reins/Providers/chat_provider.dart';
 import 'package:reins/Services/services.dart';
@@ -50,17 +52,25 @@ void main() async {
     MultiProvider(
       providers: [
         Provider(create: (_) => OllamaService()),
+        Provider(create: (_) => OpenAiService()),
         Provider(create: (_) => DatabaseService()),
+        Provider(create: (_) => SecureStorageService()),
         Provider(create: (_) => PermissionService()),
         Provider(create: (_) => ImageService()),
         ChangeNotifierProvider(
-          create: (context) => ChatProvider(ollamaService: context.read(), databaseService: context.read()),
+          create: (context) => ChatProvider(
+            ollamaService: context.read(),
+            openAiService: context.read(),
+            databaseService: context.read(),
+            secureStorageService: context.read(),
+          ),
         ),
         ChangeNotifierProvider(
           create: (context) => ChatPageViewModel(
             chatProvider: context.read(),
             permissionService: context.read(),
             imageService: context.read(),
+            secureStorageService: context.read(),
           ),
         ),
       ],
@@ -136,6 +146,17 @@ class ReinsApp extends StatelessWidget {
               final args = settings.arguments as SettingsRouteArguments?;
 
               return MaterialPageRoute(builder: (context) => SettingsPage(arguments: args));
+            }
+
+            if (settings.name == '/settings/ollama') {
+              final args = settings.arguments as SettingsRouteArguments?;
+              return MaterialPageRoute(
+                builder: (context) => OllamaSettingsPage(arguments: args),
+              );
+            }
+
+            if (settings.name == '/settings/api-keys') {
+              return MaterialPageRoute(builder: (context) => const ApiKeysSettingsPage());
             }
 
             if (settings.name == '/profiles') {

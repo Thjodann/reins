@@ -82,6 +82,7 @@ dependencies:
 
   notification_centre: ^0.0.3
   flutter_markdown_plus: ^1.0.7
+  flutter_secure_storage: ^9.2.4
 
 dev_dependencies:
   flutter_test:
