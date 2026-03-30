@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reins/Constants/constants.dart';
+import 'package:reins/Models/chatbot_profile.dart';
 import 'package:reins/Models/ollama_chat.dart';
 import 'package:reins/Models/ollama_message.dart';
 import 'package:reins/Services/database_service.dart';
@@ -67,15 +68,11 @@ void main() async {
   });
 
   test('Test database update chat system prompt', () async {
-    const systemPrompt =
-        "You are Mario from super mario bros, acting as an assistant.";
+    const systemPrompt = "You are Mario from super mario bros, acting as an assistant.";
 
     final chat = await service.createChat(model);
 
-    await service.updateChat(
-      chat,
-      newSystemPrompt: systemPrompt,
-    );
+    await service.updateChat(chat, newSystemPrompt: systemPrompt);
 
     final updatedChat = (await service.getChat(chat.id))!;
     expect(updatedChat.model, model);
@@ -125,6 +122,52 @@ void main() async {
     expect(await service.getChat(chat.id), isNull);
   });
 
+  test('Test database create and fetch chatbot profile', () async {
+    final profile = ChatbotProfile(
+      name: 'Test Profile',
+      age: 28,
+      profession: 'Engineer',
+      bio: 'Helps users with concise answers.',
+      traits: 'Thoughtful and pragmatic',
+    );
+
+    final created = await service.createChatbotProfile(profile, isDefault: true);
+    final fetched = await service.getChatbotProfile(created.id);
+    final defaultProfile = await service.getDefaultChatbotProfile();
+
+    expect(fetched, isNotNull);
+    expect(fetched!.name, 'Test Profile');
+    expect(fetched.profession, 'Engineer');
+    expect(defaultProfile?.id, created.id);
+  });
+
+  test('Test database create chat with profile linkage', () async {
+    final profile = await service.createChatbotProfile(
+      ChatbotProfile(name: 'Persona A', age: 35, profession: 'Therapist', bio: 'A calming and grounded assistant.'),
+    );
+
+    final chat = await service.createChat(model, profileId: profile.id, systemPrompt: profile.toSystemPrompt());
+
+    final fetchedChat = await service.getChat(chat.id);
+
+    expect(fetchedChat, isNotNull);
+    expect(fetchedChat!.profileId, profile.id);
+    expect(fetchedChat.systemPrompt, contains('Persona A'));
+  });
+
+  test('Test deleting chatbot profile clears chat profile references', () async {
+    final profile = await service.createChatbotProfile(
+      ChatbotProfile(name: 'Persona B', age: 22, profession: 'Designer', bio: 'Creative visual thinker.'),
+    );
+
+    final chat = await service.createChat(model, profileId: profile.id, systemPrompt: profile.toSystemPrompt());
+    await service.deleteChatbotProfile(profile.id);
+
+    final fetchedChat = await service.getChat(chat.id);
+    expect(fetchedChat, isNotNull);
+    expect(fetchedChat!.profileId, isNull);
+  });
+
   test('Test database delete chat with images', () async {
     List<File> images = [];
     for (var i = 0; i < 10; i++) {
@@ -138,11 +181,7 @@ void main() async {
 
     for (final image in images) {
       await service.addMessage(
-        OllamaMessage(
-          "Hello, this is a test message.",
-          images: [image],
-          role: OllamaMessageRole.user,
-        ),
+        OllamaMessage("Hello, this is a test message.", images: [image], role: OllamaMessageRole.user),
         chat: chat,
       );
     }
@@ -172,10 +211,7 @@ void main() async {
 
   test("Test database add message", () async {
     final chat = await service.createChat(model);
-    final message = OllamaMessage(
-      "Hello, this is a test message.",
-      role: OllamaMessageRole.user,
-    );
+    final message = OllamaMessage("Hello, this is a test message.", role: OllamaMessageRole.user);
 
     await service.addMessage(message, chat: chat);
 
@@ -188,11 +224,7 @@ void main() async {
 
   test('Test database add message with images', () async {
     final chat = await service.createChat(model);
-    final message = OllamaMessage(
-      "Hello, this is a test message.",
-      images: [imageFile],
-      role: OllamaMessageRole.user,
-    );
+    final message = OllamaMessage("Hello, this is a test message.", images: [imageFile], role: OllamaMessageRole.user);
 
     await service.addMessage(message, chat: chat);
 
@@ -206,10 +238,7 @@ void main() async {
 
   test("Test database get message", () async {
     final chat = await service.createChat(model);
-    final message = OllamaMessage(
-      "Hello, this is a test message.",
-      role: OllamaMessageRole.user,
-    );
+    final message = OllamaMessage("Hello, this is a test message.", role: OllamaMessageRole.user);
 
     await service.addMessage(message, chat: chat);
 
@@ -222,11 +251,7 @@ void main() async {
 
   test('Test database get message with images', () async {
     final chat = await service.createChat(model);
-    final message = OllamaMessage(
-      "Hello, this is a test message.",
-      images: [imageFile],
-      role: OllamaMessageRole.user,
-    );
+    final message = OllamaMessage("Hello, this is a test message.", images: [imageFile], role: OllamaMessageRole.user);
 
     await service.addMessage(message, chat: chat);
 
@@ -255,10 +280,7 @@ void main() async {
 
   test('Test database delete message', () async {
     final chat = await service.createChat(model);
-    final message = OllamaMessage(
-      "Hello, this is a test message.",
-      role: OllamaMessageRole.user,
-    );
+    final message = OllamaMessage("Hello, this is a test message.", role: OllamaMessageRole.user);
 
     await service.addMessage(message, chat: chat);
     expect(await service.getMessage(message.id), isNotNull);
@@ -292,10 +314,7 @@ void main() async {
 
   test("Test database get messages", () async {
     final chat = await service.createChat(model);
-    final message = OllamaMessage(
-      "Hello, this is a test message.",
-      role: OllamaMessageRole.user,
-    );
+    final message = OllamaMessage("Hello, this is a test message.", role: OllamaMessageRole.user);
 
     await service.addMessage(message, chat: chat);
 
@@ -308,10 +327,7 @@ void main() async {
 
   test("Test database delete messages", () async {
     final chat = await service.createChat(model);
-    final message = OllamaMessage(
-      "Hello, this is a test message.",
-      role: OllamaMessageRole.user,
-    );
+    final message = OllamaMessage("Hello, this is a test message.", role: OllamaMessageRole.user);
 
     await service.addMessage(message, chat: chat);
     expect(await service.getMessage(message.id), isNotNull);
@@ -333,11 +349,7 @@ void main() async {
 
     List<OllamaMessage> messages = [];
     for (final image in images) {
-      final message = OllamaMessage(
-        "Hello, this is a test message.",
-        images: [image],
-        role: OllamaMessageRole.user,
-      );
+      final message = OllamaMessage("Hello, this is a test message.", images: [image], role: OllamaMessageRole.user);
       await service.addMessage(message, chat: chat);
       messages.add(message);
     }
@@ -356,9 +368,7 @@ void main() async {
   });
 }
 
-class FakePathProviderPlatform extends Fake
-    with MockPlatformInterfaceMixin
-    implements PathProviderPlatform {
+class FakePathProviderPlatform extends Fake with MockPlatformInterfaceMixin implements PathProviderPlatform {
   @override
   Future<String?> getApplicationDocumentsPath() async {
     return path.join(Directory.current.path, 'test', 'assets');

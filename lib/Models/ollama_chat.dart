@@ -6,6 +6,7 @@ class OllamaChat {
   final String model;
   final String title;
   final String? systemPrompt;
+  final String? profileId;
   final OllamaChatOptions options;
 
   OllamaChat({
@@ -13,10 +14,11 @@ class OllamaChat {
     required this.model,
     String? title,
     this.systemPrompt,
+    this.profileId,
     OllamaChatOptions? options,
-  })  : id = id ?? Uuid().v4(),
-        title = title ?? 'New Chat',
-        options = options ?? OllamaChatOptions();
+  }) : id = id ?? Uuid().v4(),
+       title = title ?? 'New Chat',
+       options = options ?? OllamaChatOptions();
 
   factory OllamaChat.fromMap(Map<String, dynamic> map) {
     return OllamaChat(
@@ -24,6 +26,7 @@ class OllamaChat {
       model: map['model'],
       title: map['chat_title'],
       systemPrompt: map['system_prompt'],
+      profileId: map['profile_id'],
       options: map['options'] != null ? OllamaChatOptions.fromJson(map['options']) : null,
     );
   }
@@ -97,19 +100,19 @@ class OllamaChatOptions {
     int? topK,
     double? topP,
     double? minP,
-  })  : mirostat = mirostat ?? 0,
-        mirostatEta = mirostatEta ?? 0.1,
-        mirostatTau = mirostatTau ?? 5.0,
-        contextSize = contextSize ?? 2048,
-        repeatLastN = repeatLastN ?? 64,
-        repeatPenalty = repeatPenalty ?? 1.1,
-        temperature = temperature ?? 0.8,
-        seed = seed ?? 0,
-        tailFreeSampling = tailFreeSampling ?? 1.0,
-        maxTokens = maxTokens ?? -1,
-        topK = topK ?? 40,
-        topP = topP ?? 0.9,
-        minP = minP ?? 0.0;
+  }) : mirostat = mirostat ?? 0,
+       mirostatEta = mirostatEta ?? 0.1,
+       mirostatTau = mirostatTau ?? 5.0,
+       contextSize = contextSize ?? 2048,
+       repeatLastN = repeatLastN ?? 64,
+       repeatPenalty = repeatPenalty ?? 1.1,
+       temperature = temperature ?? 0.8,
+       seed = seed ?? 0,
+       tailFreeSampling = tailFreeSampling ?? 1.0,
+       maxTokens = maxTokens ?? -1,
+       topK = topK ?? 40,
+       topP = topP ?? 0.9,
+       minP = minP ?? 0.0;
 
   /// Factory method for creating an instance of [OllamaChatOptions] from a map.
   factory OllamaChatOptions.fromMap(Map<String, dynamic> map) {

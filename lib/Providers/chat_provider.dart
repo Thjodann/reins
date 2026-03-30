@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:notification_centre/notification_centre.dart';
 
 import 'package:reins/Constants/constants.dart';
+import 'package:reins/Models/chatbot_profile.dart';
 import 'package:reins/Models/chat_configure_arguments.dart';
 import 'package:reins/Models/ollama_chat.dart';
 import 'package:reins/Models/ollama_exception.dart';
@@ -23,16 +24,24 @@ class ChatProvider extends ChangeNotifier {
   List<OllamaChat> _chats = [];
   List<OllamaChat> get chats => _chats;
 
+  List<ChatbotProfile> _profiles = [];
+  List<ChatbotProfile> get profiles => List.unmodifiable(_profiles);
+
+  String? _selectedProfileId;
+  String? get selectedProfileId => _selectedProfileId;
+  ChatbotProfile? get selectedProfile {
+    if (_selectedProfileId == null) return null;
+    return _profiles.where((p) => p.id == _selectedProfileId).firstOrNull;
+  }
+
   int _currentChatIndex = -1;
   int get selectedDestination => _currentChatIndex + 1;
 
-  OllamaChat? get currentChat =>
-      _currentChatIndex == -1 ? null : _chats[_currentChatIndex];
+  OllamaChat? get currentChat => _currentChatIndex == -1 ? null : _chats[_currentChatIndex];
 
   final Map<String, OllamaMessage?> _activeChatStreams = {};
 
-  bool get isCurrentChatStreaming =>
-      _activeChatStreams.containsKey(currentChat?.id);
+  bool get isCurrentChatStreaming => _activeChatStreams.containsKey(currentChat?.id);
 
   bool get isCurrentChatThinking =>
       currentChat != null &&
@@ -53,21 +62,16 @@ class ChatProvider extends ChangeNotifier {
     if (currentChat == null) {
       return _emptyChatConfiguration ?? ChatConfigureArguments.defaultArguments;
     } else {
-      return ChatConfigureArguments(
-        systemPrompt: currentChat!.systemPrompt,
-        chatOptions: currentChat!.options,
-      );
+      return ChatConfigureArguments(systemPrompt: currentChat!.systemPrompt, chatOptions: currentChat!.options);
     }
   }
 
   /// The chat configuration for the empty chat.
   ChatConfigureArguments? _emptyChatConfiguration;
 
-  ChatProvider({
-    required OllamaService ollamaService,
-    required DatabaseService databaseService,
-  })  : _ollamaService = ollamaService,
-        _databaseService = databaseService {
+  ChatProvider({required OllamaService ollamaService, required DatabaseService databaseService})
+    : _ollamaService = ollamaService,
+      _databaseService = databaseService {
     _initialize();
   }
 
@@ -76,7 +80,15 @@ class ChatProvider extends ChangeNotifier {
 
     await _databaseService.open("ollama_chat.db");
     _chats = await _databaseService.getAllChats();
+    await _loadProfiles();
     notifyListeners();
+  }
+
+  Future<void> _loadProfiles() async {
+    _profiles = await _databaseService.getAllChatbotProfiles();
+
+    final defaultProfile = _profiles.where((profile) => profile.isDefault).firstOrNull;
+    _selectedProfileId = defaultProfile?.id;
   }
 
   void destinationChatSelected(int destination) {
@@ -114,8 +126,15 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> createNewChat(OllamaModel model) async {
-    final chat = await _databaseService.createChat(model.name);
+  Future<void> createNewChat(OllamaModel model, {String? profileId}) async {
+    final resolvedProfileId = profileId ?? _selectedProfileId;
+    final profile = _profiles.where((p) => p.id == resolvedProfileId).firstOrNull;
+
+    final chat = await _databaseService.createChat(
+      model.name,
+      profileId: profile?.id,
+      systemPrompt: profile?.toSystemPrompt(),
+    );
 
     _chats.insert(0, chat);
     _currentChatIndex = 0;
@@ -137,6 +156,7 @@ class ChatProvider extends ChangeNotifier {
     String? newTitle,
     String? newSystemPrompt,
     OllamaChatOptions? newOptions,
+    String? newProfileId,
   }) async {
     await updateChat(
       currentChat,
@@ -144,6 +164,7 @@ class ChatProvider extends ChangeNotifier {
       newTitle: newTitle,
       newSystemPrompt: newSystemPrompt,
       newOptions: newOptions,
+      newProfileId: newProfileId,
     );
   }
 
@@ -156,6 +177,7 @@ class ChatProvider extends ChangeNotifier {
     String? newTitle,
     String? newSystemPrompt,
     OllamaChatOptions? newOptions,
+    String? newProfileId,
   }) async {
     if (chat == null) {
       final chatOptions = newOptions ?? _emptyChatConfiguration?.chatOptions;
@@ -170,6 +192,7 @@ class ChatProvider extends ChangeNotifier {
         newTitle: newTitle,
         newSystemPrompt: newSystemPrompt,
         newOptions: newOptions,
+        newProfileId: newProfileId,
       );
 
       final chatIndex = _chats.indexWhere((c) => c.id == chat.id);
@@ -181,6 +204,51 @@ class ChatProvider extends ChangeNotifier {
         throw OllamaException("Chat not found.");
       }
     }
+  }
+
+  Future<void> createChatbotProfile(ChatbotProfile profile, {bool setAsDefault = false}) async {
+    final createdProfile = await _databaseService.createChatbotProfile(profile, isDefault: setAsDefault);
+
+    await _loadProfiles();
+    if (setAsDefault) {
+      _selectedProfileId = createdProfile.id;
+    }
+    notifyListeners();
+  }
+
+  Future<void> updateChatbotProfile(ChatbotProfile profile, {bool? setAsDefault}) async {
+    await _databaseService.updateChatbotProfile(profile, isDefault: setAsDefault);
+
+    await _loadProfiles();
+    notifyListeners();
+  }
+
+  Future<void> deleteChatbotProfile(String profileId) async {
+    await _databaseService.deleteChatbotProfile(profileId);
+    await _loadProfiles();
+
+    if (_selectedProfileId == profileId) {
+      _selectedProfileId = _profiles.where((profile) => profile.isDefault).firstOrNull?.id;
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> setDefaultChatbotProfile(String profileId) async {
+    await _databaseService.setDefaultChatbotProfile(profileId);
+    await _loadProfiles();
+    _selectedProfileId = profileId;
+    notifyListeners();
+  }
+
+  Future<void> clearDefaultChatbotProfile() async {
+    final defaultProfile = _profiles.where((profile) => profile.isDefault).firstOrNull;
+    if (defaultProfile == null) return;
+
+    await _databaseService.updateChatbotProfile(defaultProfile, isDefault: false);
+    await _loadProfiles();
+    _selectedProfileId = null;
+    notifyListeners();
   }
 
   Future<void> deleteCurrentChat() async {
@@ -200,11 +268,7 @@ class ChatProvider extends ChangeNotifier {
     final associatedChat = currentChat!;
 
     // Create a user prompt message and add it to the chat
-    final prompt = OllamaMessage(
-      text.trim(),
-      images: images,
-      role: OllamaMessageRole.user,
-    );
+    final prompt = OllamaMessage(text.trim(), images: images, role: OllamaMessageRole.user);
     _messages.add(prompt);
 
     notifyListeners();
@@ -351,10 +415,7 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateMessage(
-    OllamaMessage message, {
-    String? newContent,
-  }) async {
+  Future<void> updateMessage(OllamaMessage message, {String? newContent}) async {
     message.content = newContent ?? message.content;
     notifyListeners();
 
@@ -406,11 +467,7 @@ class ChatProvider extends ChangeNotifier {
       throw OllamaException("No chat is selected.");
     }
 
-    await _ollamaService.createModel(
-      modelName,
-      chat: associatedChat,
-      messages: _messages.toList(),
-    );
+    await _ollamaService.createModel(modelName, chat: associatedChat, messages: _messages.toList());
   }
 
   Future<void> generateTitleForCurrentChat() async {
@@ -419,16 +476,10 @@ class ChatProvider extends ChangeNotifier {
     if (associatedChat == null || message == null) return;
 
     // Create a temp chat with necessary system prompt
-    final chat = OllamaChat(
-      model: associatedChat.model,
-      systemPrompt: GenerateTitleConstants.systemPrompt,
-    );
+    final chat = OllamaChat(model: associatedChat.model, systemPrompt: GenerateTitleConstants.systemPrompt);
 
     // Generate a title for the message
-    final stream = _ollamaService.generateStream(
-      GenerateTitleConstants.prompt + message.content,
-      chat: chat,
-    );
+    final stream = _ollamaService.generateStream(GenerateTitleConstants.prompt + message.content, chat: chat);
 
     var title = "";
     await for (final titleMessage in stream) {

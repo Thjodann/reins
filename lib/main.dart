@@ -5,6 +5,7 @@ import 'package:reins/Constants/constants.dart';
 import 'package:reins/Models/settings_route_arguments.dart';
 import 'package:reins/Pages/chat_page/chat_page_view_model.dart';
 import 'package:reins/Pages/main_page.dart';
+import 'package:reins/Pages/profiles_page/profiles_page.dart';
 import 'package:reins/Pages/settings_page/settings_page.dart';
 import 'package:reins/Providers/chat_provider.dart';
 import 'package:reins/Services/services.dart';
@@ -53,10 +54,7 @@ void main() async {
         Provider(create: (_) => PermissionService()),
         Provider(create: (_) => ImageService()),
         ChangeNotifierProvider(
-          create: (context) => ChatProvider(
-            ollamaService: context.read(),
-            databaseService: context.read(),
-          ),
+          create: (context) => ChatProvider(ollamaService: context.read(), databaseService: context.read()),
         ),
         ChangeNotifierProvider(
           create: (context) => ChatPageViewModel(
@@ -71,9 +69,7 @@ void main() async {
   );
 }
 
-Future<void> _requestInAppReviewIfAvailable(
-  RequestReviewHelper reviewHelper,
-) async {
+Future<void> _requestInAppReviewIfAvailable(RequestReviewHelper reviewHelper) async {
   final inAppReview = InAppReview.instance;
   if (!await inAppReview.isAvailable() || !reviewHelper.shouldRequestReview()) {
     return;
@@ -95,9 +91,7 @@ Future<void> _openSettingsBoxWithRetry() async {
       await Hive.openBox('settings');
       return;
     } on FileSystemException catch (error) {
-      final isLockConflict =
-          error.message.toLowerCase().contains('lock failed') ||
-          error.osError?.errorCode == 35;
+      final isLockConflict = error.message.toLowerCase().contains('lock failed') || error.osError?.errorCode == 35;
       final hasRetryLeft = attempt < maxAttempts;
       if (!isLockConflict || !hasRetryLeft) rethrow;
       await Future<void>.delayed(retryDelay);
@@ -111,9 +105,7 @@ class ReinsApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
-      valueListenable: Hive.box('settings').listenable(
-        keys: ['color', 'brightness'],
-      ),
+      valueListenable: Hive.box('settings').listenable(keys: ['color', 'brightness']),
       builder: (context, box, _) {
         return MaterialApp(
           title: AppConstants.appName,
@@ -137,17 +129,17 @@ class ReinsApp extends StatelessWidget {
           ),
           onGenerateRoute: (settings) {
             if (settings.name == '/') {
-              return MaterialPageRoute(
-                builder: (context) => const ReinsMainPage(),
-              );
+              return MaterialPageRoute(builder: (context) => const ReinsMainPage());
             }
 
             if (settings.name == '/settings') {
               final args = settings.arguments as SettingsRouteArguments?;
 
-              return MaterialPageRoute(
-                builder: (context) => SettingsPage(arguments: args),
-              );
+              return MaterialPageRoute(builder: (context) => SettingsPage(arguments: args));
+            }
+
+            if (settings.name == '/profiles') {
+              return MaterialPageRoute(builder: (context) => const ProfilesPage());
             }
 
             assert(false, 'Need to implement ${settings.name}');

@@ -138,9 +138,7 @@ void main() {
 
   group('ChatProvider State (Proxied)', () {
     test('messages should proxy ChatProvider messages', () {
-      final messages = [
-        OllamaMessage('Hello', role: OllamaMessageRole.user),
-      ];
+      final messages = [OllamaMessage('Hello', role: OllamaMessageRole.user)];
       fakeChatProvider.setMessages(messages);
 
       expect(viewModel.messages, messages);
@@ -207,10 +205,7 @@ void main() {
 
   group('sendMessage', () {
     test('should return false when text field is empty', () async {
-      final result = await viewModel.sendMessage(
-        onModelSelectionRequired: () async {},
-        onServerNotConfigured: () {},
-      );
+      final result = await viewModel.sendMessage(onModelSelectionRequired: () async {}, onServerNotConfigured: () {});
 
       expect(result, isFalse);
     });
@@ -219,10 +214,7 @@ void main() {
       viewModel.setTextFieldValue('Hello');
       fakeChatProvider.setIsStreaming(true);
 
-      final result = await viewModel.sendMessage(
-        onModelSelectionRequired: () async {},
-        onServerNotConfigured: () {},
-      );
+      final result = await viewModel.sendMessage(onModelSelectionRequired: () async {}, onServerNotConfigured: () {});
 
       expect(result, isFalse);
     });
@@ -258,10 +250,7 @@ void main() {
     test('should return false if no model selected after selection callback', () async {
       viewModel.setTextFieldValue('Hello');
 
-      final result = await viewModel.sendMessage(
-        onModelSelectionRequired: () async {},
-        onServerNotConfigured: () {},
-      );
+      final result = await viewModel.sendMessage(onModelSelectionRequired: () async {}, onServerNotConfigured: () {});
 
       expect(result, isFalse);
     });
@@ -271,10 +260,7 @@ void main() {
       final model = createTestModel('llama3.2');
       viewModel.setSelectedModel(model);
 
-      final result = await viewModel.sendMessage(
-        onModelSelectionRequired: () async {},
-        onServerNotConfigured: () {},
-      );
+      final result = await viewModel.sendMessage(onModelSelectionRequired: () async {}, onServerNotConfigured: () {});
 
       expect(result, isTrue);
       expect(fakeChatProvider.createNewChatCalled, isTrue);
@@ -282,14 +268,21 @@ void main() {
       expect(fakeChatProvider.generateTitleCalled, isTrue);
     });
 
+    test('should use profile-aware chat creation flow', () async {
+      viewModel.setTextFieldValue('Hello');
+      viewModel.setSelectedModel(createTestModel('llama3.2'));
+      fakeChatProvider.selectedProfileId = 'default-profile-id';
+
+      await viewModel.sendMessage(onModelSelectionRequired: () async {}, onServerNotConfigured: () {});
+
+      expect(fakeChatProvider.lastCreateChatProfileId, 'default-profile-id');
+    });
+
     test('should clear text field after sending', () async {
       viewModel.setTextFieldValue('Hello');
       viewModel.setSelectedModel(createTestModel('llama3.2'));
 
-      await viewModel.sendMessage(
-        onModelSelectionRequired: () async {},
-        onServerNotConfigured: () {},
-      );
+      await viewModel.sendMessage(onModelSelectionRequired: () async {}, onServerNotConfigured: () {});
 
       expect(viewModel.textFieldController.text, isEmpty);
     });
@@ -298,10 +291,7 @@ void main() {
       viewModel.setTextFieldValue('Hello');
       fakeChatProvider.setCurrentChat(createTestChat('test-id'));
 
-      final result = await viewModel.sendMessage(
-        onModelSelectionRequired: () async {},
-        onServerNotConfigured: () {},
-      );
+      final result = await viewModel.sendMessage(onModelSelectionRequired: () async {}, onServerNotConfigured: () {});
 
       expect(result, isTrue);
       expect(fakeChatProvider.createNewChatCalled, isFalse);
@@ -339,13 +329,7 @@ OllamaModel createTestModel(String name) {
 }
 
 OllamaChat createTestChat(String id) {
-  return OllamaChat(
-    id: id,
-    model: 'llama3.2',
-    title: 'Test Chat',
-    options: OllamaChatOptions(),
-    systemPrompt: null,
-  );
+  return OllamaChat(id: id, model: 'llama3.2', title: 'Test Chat', options: OllamaChatOptions(), systemPrompt: null);
 }
 
 // ============================================================
@@ -365,8 +349,10 @@ class FakeChatProvider extends ChangeNotifier implements ChatProvider {
   bool createNewChatCalled = false;
   bool sendPromptCalled = false;
   bool generateTitleCalled = false;
+  String? selectedProfileId;
   String? lastSentPrompt;
   List<File>? lastSentImages;
+  String? lastCreateChatProfileId;
 
   void setMessages(List<OllamaMessage> messages) {
     _messages = messages;
@@ -427,8 +413,9 @@ class FakeChatProvider extends ChangeNotifier implements ChatProvider {
   }
 
   @override
-  Future<void> createNewChat(OllamaModel model) async {
+  Future<void> createNewChat(OllamaModel model, {String? profileId}) async {
     createNewChatCalled = true;
+    lastCreateChatProfileId = profileId ?? selectedProfileId;
     _currentChat = createTestChat('new-chat-id');
   }
 
@@ -466,6 +453,7 @@ class FakePermissionService implements PermissionService {
 class FakeImageService implements ImageService {
   List<File> deletedImages = [];
   File? compressedFile;
+  String? compressedAvatarPath;
 
   @override
   Future<File?> compressAndSave(String sourcePath, {int quality = 10}) async {
@@ -480,6 +468,25 @@ class FakeImageService implements ImageService {
   @override
   Future<void> deleteImages(List<File> imageFiles) async {
     deletedImages.addAll(imageFiles);
+  }
+
+  @override
+  Future<String?> compressAndSaveAvatar(String sourcePath, {int quality = 60}) async {
+    return compressedAvatarPath;
+  }
+
+  @override
+  Future<void> deleteAvatar(String? avatarRelativePath) async {}
+
+  @override
+  Future<Directory> getAvatarDirectory() async {
+    return Directory.systemTemp;
+  }
+
+  @override
+  File? getAvatarFile(String? avatarRelativePath) {
+    if (avatarRelativePath == null) return null;
+    return File(avatarRelativePath);
   }
 
   @override

@@ -44,10 +44,22 @@ class ChatNavigationDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<ChatProvider>(
       builder: (context, chatProvider, _) {
+        final selectedIndex = chatProvider.selectedDestination == 0 ? 0 : chatProvider.selectedDestination + 1;
+
         return NavigationDrawer(
-          selectedIndex: chatProvider.selectedDestination,
+          selectedIndex: selectedIndex,
           onDestinationSelected: (destination) {
-            chatProvider.destinationChatSelected(destination);
+            if (destination == 0) {
+              chatProvider.destinationChatSelected(0);
+            } else if (destination == 1) {
+              if (ResponsiveBreakpoints.of(context).isMobile) {
+                Navigator.pop(context);
+              }
+              Navigator.pushNamed(context, '/profiles');
+              return;
+            } else {
+              chatProvider.destinationChatSelected(destination - 1);
+            }
 
             if (ResponsiveBreakpoints.of(context).isMobile) {
               Navigator.pop(context);
@@ -56,17 +68,16 @@ class ChatNavigationDrawer extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(28, 16, 16, 10),
-              child: Text(
-                AppConstants.appName,
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
+              child: Text(AppConstants.appName, style: Theme.of(context).textTheme.titleSmall),
             ),
             const NavigationDrawerDestination(
-              icon: CircleAvatar(
-                backgroundImage: AssetImage(AppConstants.ollamaIconPng),
-                radius: 16,
-              ),
-              label: Text("Ollama"),
+              icon: CircleAvatar(backgroundImage: AssetImage(AppConstants.ollamaIconPng), radius: 16),
+              label: Text("New Chat"),
+            ),
+            const NavigationDrawerDestination(
+              icon: Icon(Icons.manage_accounts_outlined),
+              selectedIcon: Icon(Icons.manage_accounts),
+              label: Text("Profiles"),
             ),
             const Padding(
               padding: EdgeInsets.fromLTRB(28, 16, 28, 10),
@@ -75,12 +86,7 @@ class ChatNavigationDrawer extends StatelessWidget {
             ...chatProvider.chats.map((chat) {
               return NavigationDrawerDestination(
                 icon: const Icon(Icons.chat_outlined),
-                label: Expanded(
-                  child: Text(
-                    chat.title,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+                label: Expanded(child: Text(chat.title, overflow: TextOverflow.ellipsis)),
                 selectedIcon: const Icon(Icons.chat),
               );
             }),

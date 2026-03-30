@@ -6,35 +6,33 @@ import 'package:reins/Constants/constants.dart';
 
 /// Handles all image storage and compression operations
 class ImageService {
+  static const String _imagesDirectoryName = 'images';
+  static const String _avatarDirectoryName = 'avatars';
+
   Future<Directory> getImagesDirectory() async {
     final documentsDirectory = PathManager.instance.documentsDirectory;
-    final imagesPath = path.join(documentsDirectory.path, 'images');
+    final imagesPath = path.join(documentsDirectory.path, _imagesDirectoryName);
     return await Directory(imagesPath).create(recursive: true);
+  }
+
+  Future<Directory> getAvatarDirectory() async {
+    final documentsDirectory = PathManager.instance.documentsDirectory;
+    final avatarPath = path.join(documentsDirectory.path, _avatarDirectoryName);
+    return await Directory(avatarPath).create(recursive: true);
   }
 
   Future<File?> compressAndSave(String sourcePath, {int quality = 10}) async {
     try {
       final imagesDir = await getImagesDirectory();
-      final targetPath = path.join(
-        imagesDir.path,
-        '${DateTime.now().microsecondsSinceEpoch}.jpg',
-      );
+      final targetPath = path.join(imagesDir.path, '${DateTime.now().microsecondsSinceEpoch}.jpg');
 
-      return await _compressAndSaveImageForPlatform(
-        sourcePath,
-        targetPath,
-        quality: quality,
-      );
+      return await _compressAndSaveImageForPlatform(sourcePath, targetPath, quality: quality);
     } catch (e) {
       return null;
     }
   }
 
-  Future<File?> _compressAndSaveImageForPlatform(
-    String sourcePath,
-    String targetPath, {
-    int quality = 10,
-  }) async {
+  Future<File?> _compressAndSaveImageForPlatform(String sourcePath, String targetPath, {int quality = 10}) async {
     Function(String, String, {int quality}) function;
 
     if (Platform.isLinux) {
@@ -43,39 +41,20 @@ class ImageService {
       function = _compressAndSaveImage;
     }
 
-    return function(
-      sourcePath,
-      targetPath,
-      quality: quality,
-    );
+    return function(sourcePath, targetPath, quality: quality);
   }
 
-  Future<File?> _compressAndSaveImage(
-    String sourcePath,
-    String targetPath, {
-    int quality = 10,
-  }) async {
-    final compressed = await FlutterImageCompress.compressAndGetFile(
-      sourcePath,
-      targetPath,
-      quality: quality,
-    );
+  Future<File?> _compressAndSaveImage(String sourcePath, String targetPath, {int quality = 10}) async {
+    final compressed = await FlutterImageCompress.compressAndGetFile(sourcePath, targetPath, quality: quality);
 
     return compressed != null ? File(compressed.path) : null;
   }
 
-  Future<File?> _compressAndSaveImageLinux(
-    String sourcePath,
-    String targetPath, {
-    int quality = 10,
-  }) async {
+  Future<File?> _compressAndSaveImageLinux(String sourcePath, String targetPath, {int quality = 10}) async {
     final sourceFile = File(sourcePath);
     if (!await sourceFile.exists()) return null;
 
-    final inputImage = img_compress.ImageFile(
-      filePath: sourcePath,
-      rawBytes: await sourceFile.readAsBytes(),
-    );
+    final inputImage = img_compress.ImageFile(filePath: sourcePath, rawBytes: await sourceFile.readAsBytes());
 
     final compressedImage = await img_compress.compressInQueue(
       img_compress.ImageFileConfiguration(
@@ -95,5 +74,35 @@ class ImageService {
 
   Future<void> deleteImages(List<File> imageFiles) async {
     await Future.wait(imageFiles.map((file) => deleteImage(file)));
+  }
+
+  /// Compresses an avatar image and returns a relative path for persistence.
+  Future<String?> compressAndSaveAvatar(String sourcePath, {int quality = 60}) async {
+    try {
+      final avatarDir = await getAvatarDirectory();
+      final targetPath = path.join(avatarDir.path, '${DateTime.now().microsecondsSinceEpoch}.jpg');
+
+      final avatarFile = await _compressAndSaveImageForPlatform(sourcePath, targetPath, quality: quality);
+
+      if (avatarFile == null) return null;
+
+      return path.relative(avatarFile.path, from: PathManager.instance.documentsDirectory.path);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  File? getAvatarFile(String? avatarRelativePath) {
+    if (avatarRelativePath == null || avatarRelativePath.isEmpty) {
+      return null;
+    }
+
+    return File(path.join(PathManager.instance.documentsDirectory.path, avatarRelativePath));
+  }
+
+  Future<void> deleteAvatar(String? avatarRelativePath) async {
+    final avatarFile = getAvatarFile(avatarRelativePath);
+    if (avatarFile == null) return;
+    await deleteImage(avatarFile);
   }
 }
