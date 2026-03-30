@@ -2,6 +2,9 @@ import 'package:uuid/uuid.dart';
 
 /// Represents a reusable chatbot persona profile.
 class ChatbotProfile {
+  static const String builtInOllamaProfileId = 'builtin_ollama_profile';
+  static const String builtInOllamaAvatarAssetPath = 'assets/images/ollama.svg';
+
   final String id;
   final String name;
   final int? age;
@@ -19,6 +22,7 @@ class ChatbotProfile {
   final String? catchphrases;
   final String? avatarPath;
   final bool isDefault;
+  final bool isLocked;
 
   ChatbotProfile({
     String? id,
@@ -38,7 +42,31 @@ class ChatbotProfile {
     this.catchphrases,
     this.avatarPath,
     this.isDefault = false,
+    this.isLocked = false,
   }) : id = id ?? Uuid().v4();
+
+  factory ChatbotProfile.builtInOllama() {
+    return ChatbotProfile(
+      id: builtInOllamaProfileId,
+      name: 'Ollama Assistant',
+      age: null,
+      profession: 'AI Assistant',
+      bio: 'A default assistant profile optimized for general-purpose chat.',
+      traits: 'Helpful, concise, and direct',
+      speakingStyle: 'Clear and practical',
+      tone: 'Friendly and professional',
+      interests: 'Problem-solving, coding, and brainstorming',
+      backstory: null,
+      relationshipToUser: 'Assistant',
+      goals: 'Provide accurate, actionable responses',
+      boundaries: 'Avoid unsafe instructions and harmful content',
+      quirks: null,
+      catchphrases: null,
+      avatarPath: builtInOllamaAvatarAssetPath,
+      isDefault: true,
+      isLocked: true,
+    );
+  }
 
   factory ChatbotProfile.fromMap(Map<String, dynamic> map) {
     return ChatbotProfile(
@@ -59,6 +87,7 @@ class ChatbotProfile {
       catchphrases: map['catchphrases'] as String?,
       avatarPath: map['avatar_path'] as String?,
       isDefault: (map['is_default'] as int? ?? 0) == 1,
+      isLocked: (map['is_locked'] as int? ?? 0) == 1,
     );
   }
 
@@ -105,6 +134,7 @@ class ChatbotProfile {
       'catchphrases': catchphrases?.trim().isEmpty == true ? null : catchphrases?.trim(),
       'avatar_path': avatarPath,
       'is_default': (isDefault ?? this.isDefault) ? 1 : 0,
+      'is_locked': isLocked ? 1 : 0,
       if (includeTimestamps) 'updated_at': DateTime.now().toIso8601String(),
     };
   }
@@ -139,6 +169,7 @@ class ChatbotProfile {
     String? avatarPath,
     bool clearAvatarPath = false,
     bool? isDefault,
+    bool? isLocked,
   }) {
     return ChatbotProfile(
       id: id ?? this.id,
@@ -158,6 +189,7 @@ class ChatbotProfile {
       catchphrases: clearCatchphrases ? null : (catchphrases ?? this.catchphrases),
       avatarPath: clearAvatarPath ? null : (avatarPath ?? this.avatarPath),
       isDefault: isDefault ?? this.isDefault,
+      isLocked: isLocked ?? this.isLocked,
     );
   }
 }

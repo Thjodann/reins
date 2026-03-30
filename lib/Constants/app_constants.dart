@@ -4,6 +4,7 @@ class AppConstants {
   static const String appIconSvg = 'assets/images/reins.svg';
 
   static const String ollamaIconPng = 'assets/images/ollama.png';
+  static const String ollamaIconSvg = 'assets/images/ollama.svg';
 }
 
 class NotificationNames {

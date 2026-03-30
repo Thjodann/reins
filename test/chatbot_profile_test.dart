@@ -72,6 +72,7 @@ void main() {
     expect(databaseMap['tone'], isNull);
     expect(databaseMap['avatar_path'], 'avatars/nova.jpg');
     expect(databaseMap['is_default'], 1);
+    expect(databaseMap['is_locked'], 0);
     expect(databaseMap['updated_at'], isNotNull);
   });
 
@@ -105,5 +106,14 @@ void main() {
     expect(updated.tone, isNull);
     expect(updated.avatarPath, isNull);
     expect(updated.goals, 'Keep things focused');
+  });
+
+  test('ChatbotProfile.builtInOllama produces a locked built-in profile', () {
+    final profile = ChatbotProfile.builtInOllama();
+
+    expect(profile.id, ChatbotProfile.builtInOllamaProfileId);
+    expect(profile.avatarPath, ChatbotProfile.builtInOllamaAvatarAssetPath);
+    expect(profile.isDefault, isTrue);
+    expect(profile.isLocked, isTrue);
   });
 }

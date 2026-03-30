@@ -24,7 +24,7 @@ class DatabaseService {
   Future<void> open(String databaseFile) async {
     _db = await openDatabase(
       path.join(await getDatabasesPathForPlatform(), databaseFile),
-      version: 4,
+      version: 5,
       onCreate: (Database db, int version) async {
         await db.execute('''CREATE TABLE IF NOT EXISTS chats (
 chat_id TEXT PRIMARY KEY,
@@ -79,12 +79,15 @@ END;''');
           await db.execute('ALTER TABLE chatbot_profiles ADD COLUMN catchphrases TEXT;');
         }
         if (oldVersion < 4) {
-          await db.execute(
-            "ALTER TABLE chats ADD COLUMN provider TEXT NOT NULL DEFAULT 'ollama';",
-          );
+          await db.execute("ALTER TABLE chats ADD COLUMN provider TEXT NOT NULL DEFAULT 'ollama';");
+        }
+        if (oldVersion < 5) {
+          await db.execute("ALTER TABLE chatbot_profiles ADD COLUMN is_locked INTEGER NOT NULL DEFAULT 0;");
         }
       },
     );
+
+    await ensureBuiltInProfiles();
   }
 
   Future<void> _createChatbotProfilesTable(Database db) async {
@@ -106,6 +109,7 @@ quirks TEXT,
 catchphrases TEXT,
 avatar_path TEXT,
 is_default INTEGER NOT NULL DEFAULT 0,
+is_locked INTEGER NOT NULL DEFAULT 0,
 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) WITHOUT ROWID;''');
@@ -223,7 +227,40 @@ ORDER BY last_update DESC;''',
     return maps.map(ChatbotProfile.fromMap).toList();
   }
 
+  Future<void> ensureBuiltInProfiles() async {
+    final builtInProfile = ChatbotProfile.builtInOllama();
+    final existing = await _db.query(
+      'chatbot_profiles',
+      columns: ['profile_id', 'is_default'],
+      where: 'profile_id = ?',
+      whereArgs: [builtInProfile.id],
+      limit: 1,
+    );
+
+    await _db.transaction((txn) async {
+      if (existing.isEmpty) {
+        await _clearDefaultProfile(txn);
+        await txn.insert('chatbot_profiles', builtInProfile.toDatabaseMap(isDefault: true, includeTimestamps: true));
+        return;
+      }
+
+      final shouldRemainDefault = (existing.first['is_default'] as int? ?? 0) == 1;
+      await txn.update(
+        'chatbot_profiles',
+        builtInProfile.toDatabaseMap(isDefault: shouldRemainDefault, includeTimestamps: true),
+        where: 'profile_id = ?',
+        whereArgs: [builtInProfile.id],
+      );
+    });
+  }
+
   Future<void> updateChatbotProfile(ChatbotProfile profile, {bool? isDefault}) async {
+    final existing = await getChatbotProfile(profile.id);
+    if (existing == null) return;
+    if (existing.isLocked) {
+      throw StateError('This profile is locked and cannot be customized.');
+    }
+
     await _db.transaction((txn) async {
       if (isDefault == true) {
         await _clearDefaultProfile(txn);
@@ -261,6 +298,11 @@ ORDER BY last_update DESC;''',
   }
 
   Future<void> deleteChatbotProfile(String profileId) async {
+    final existing = await getChatbotProfile(profileId);
+    if (existing == null || existing.isLocked) {
+      return;
+    }
+
     await _db.transaction((txn) async {
       await txn.delete('chatbot_profiles', where: 'profile_id = ?', whereArgs: [profileId]);
 

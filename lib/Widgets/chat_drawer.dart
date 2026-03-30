@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:reins/Constants/constants.dart';
 import 'package:reins/Providers/chat_provider.dart';
 import 'package:provider/provider.dart';
@@ -70,8 +71,17 @@ class ChatNavigationDrawer extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(28, 16, 16, 10),
               child: Text(AppConstants.appName, style: Theme.of(context).textTheme.titleSmall),
             ),
-            const NavigationDrawerDestination(
-              icon: CircleAvatar(backgroundImage: AssetImage(AppConstants.ollamaIconPng), radius: 16),
+            NavigationDrawerDestination(
+              icon: CircleAvatar(
+                radius: 16,
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: SvgPicture.asset(
+                    AppConstants.ollamaIconSvg,
+                    colorFilter: ColorFilter.mode(Theme.of(context).colorScheme.onSurface, BlendMode.srcIn),
+                  ),
+                ),
+              ),
               label: Text("New Chat"),
             ),
             const NavigationDrawerDestination(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:reins/Constants/constants.dart';
 import 'package:reins/Models/chatbot_profile.dart';
 import 'package:reins/Providers/chat_provider.dart';
 import 'package:reins/Services/services.dart';
@@ -42,8 +44,8 @@ class _ProfilesPageState extends State<ProfilesPage> {
 
               return Card(
                 child: ListTile(
-                  onTap: () => _editProfile(profile),
-                  leading: _buildAvatar(profile.avatarPath),
+                  onTap: profile.isLocked ? null : () => _editProfile(profile),
+                  leading: _buildAvatar(profile),
                   title: Row(
                     children: [
                       Expanded(child: Text(profile.name, overflow: TextOverflow.ellipsis)),
@@ -52,6 +54,8 @@ class _ProfilesPageState extends State<ProfilesPage> {
                           padding: EdgeInsets.only(left: 8.0),
                           child: Icon(Icons.star, color: Colors.amber),
                         ),
+                      if (profile.isLocked)
+                        const Padding(padding: EdgeInsets.only(left: 8.0), child: Icon(Icons.lock_outline, size: 18)),
                     ],
                   ),
                   subtitle: Text('$subtitle\n${profile.bio}', maxLines: 2, overflow: TextOverflow.ellipsis),
@@ -65,11 +69,15 @@ class _ProfilesPageState extends State<ProfilesPage> {
                         await _deleteProfile(profile);
                       }
                     },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(value: 'default', child: Text('Set as default')),
-                      const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                      const PopupMenuItem(value: 'delete', child: Text('Delete')),
-                    ],
+                    itemBuilder: (context) {
+                      return [
+                        if (!profile.isDefault) const PopupMenuItem(value: 'default', child: Text('Set as default')),
+                        if (!profile.isLocked) const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                        if (!profile.isLocked) const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                        if (profile.isLocked)
+                          const PopupMenuItem(enabled: false, child: Text('Built-in profile (non-customizable)')),
+                      ];
+                    },
                   ),
                 ),
               );
@@ -85,7 +93,20 @@ class _ProfilesPageState extends State<ProfilesPage> {
     );
   }
 
-  Widget _buildAvatar(String? avatarRelativePath) {
+  Widget _buildAvatar(ChatbotProfile profile) {
+    if (profile.avatarPath == ChatbotProfile.builtInOllamaAvatarAssetPath) {
+      return CircleAvatar(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SvgPicture.asset(
+            AppConstants.ollamaIconSvg,
+            colorFilter: ColorFilter.mode(Theme.of(context).colorScheme.onSurface, BlendMode.srcIn),
+          ),
+        ),
+      );
+    }
+
+    final avatarRelativePath = profile.avatarPath;
     final imageService = context.read<ImageService>();
     final avatarFile = imageService.getAvatarFile(avatarRelativePath);
 
@@ -123,6 +144,8 @@ class _ProfilesPageState extends State<ProfilesPage> {
   }
 
   Future<void> _editProfile(ChatbotProfile profile) async {
+    if (profile.isLocked) return;
+
     final chatProvider = context.read<ChatProvider>();
     final imageService = context.read<ImageService>();
 
@@ -170,6 +193,8 @@ class _ProfilesPageState extends State<ProfilesPage> {
   }
 
   Future<void> _deleteProfile(ChatbotProfile profile) async {
+    if (profile.isLocked) return;
+
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (context) {

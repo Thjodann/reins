@@ -35,6 +35,15 @@ void main() async {
     await service.open('test_database.db');
   });
 
+  test('Built-in Ollama profile is seeded and locked', () async {
+    final builtIn = await service.getChatbotProfile(ChatbotProfile.builtInOllamaProfileId);
+
+    expect(builtIn, isNotNull);
+    expect(builtIn!.name, 'Ollama Assistant');
+    expect(builtIn.avatarPath, ChatbotProfile.builtInOllamaAvatarAssetPath);
+    expect(builtIn.isLocked, isTrue);
+  });
+
   test("Test database create chat", () async {
     final chat = await service.createChat(model);
 
