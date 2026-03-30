@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.3.4+1
 
 environment:
-  sdk: ^3.5.4
+  sdk: ^3.9.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -32,16 +32,16 @@ dependencies:
     sdk: flutter
 
   # HTTP package for making network requests
-  http: ^1.2.2
-  async: ^2.11.0
+  http: ^1.6.0
+  async: ^2.13.1
 
   # State management solution
-  provider: ^6.1.2
+  provider: ^6.1.5+1
 
   # SQLite plugin for Flutter
   sqflite: ^2.4.1
-  sqflite_common_ffi: ^2.3.4
-  uuid: ^4.5.1
+  sqflite_common_ffi: ^2.4.0+2
+  uuid: ^4.5.3
 
   # Path provider for SQLite
   path: ^1.9.0
@@ -54,50 +54,50 @@ dependencies:
   google_fonts: ^8.0.2
 
   # SVG rendering and widget library
-  flutter_svg: ^2.0.14
+  flutter_svg: ^2.2.4
 
   # Animation package
-  animated_text_kit: ^4.2.2
+  animated_text_kit: ^4.3.0
   shimmer: ^3.0.0
 
   # Responsive framework
   responsive_framework: ^1.5.1
 
   # Markdown rendering
-  flutter_markdown: ^0.7.4+3
-  markdown: any
-  url_launcher: ^6.3.1
+  markdown: ^7.3.1
+  url_launcher: ^6.3.2
 
   # Image support
-  image_picker: ^1.1.2
+  image_picker: ^1.2.1
   path_provider: ^2.1.5
   flutter_image_compress: ^2.3.0
   image_compression: ^1.0.5
   photo_view: ^0.15.0
-  permission_handler: ^11.3.1
+  permission_handler: ^12.0.1
 
   # In-app review
-  in_app_review: ^2.0.10
+  in_app_review: ^2.0.11
 
   share_plus: ^12.0.1
 
   notification_centre: ^0.0.3
+  flutter_markdown_plus: ^1.0.7
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
   # Linting rules for Flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
   # Testing framework
-  test: ^1.25.7
+  test: ^1.30.0
 
   # Create custom icons for Android and iOS
-  flutter_launcher_icons: ^0.14.1
+  flutter_launcher_icons: ^0.14.4
 
   # Splash screen generator
-  flutter_native_splash: ^2.4.3
+  flutter_native_splash: ^2.4.7
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

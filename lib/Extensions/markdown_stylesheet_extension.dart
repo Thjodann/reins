@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 /// Extension on [BuildContext] to provide consistent markdown styling across the app.
 extension MarkdownStyleSheetExtension on BuildContext {
