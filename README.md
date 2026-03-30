@@ -23,6 +23,7 @@ You can find Android and Windows releases from [here](https://github.com/ibrahim
 - **Save Custom Models**: Save system and chat prompts as new models.
 - **Image Integration**: Send and receive images within chats.
 - **Multiple Chat Management**: Easily manage and switch between multiple conversations.
+- **Chatbot Profiles**: Create reusable chatbot personas with profile photos, bio details, and default auto-apply behavior for new chats.
 - **Real-Time Message Streaming**: Get messages instantly as they arrive.
 
 ## Mobile Screenshots
