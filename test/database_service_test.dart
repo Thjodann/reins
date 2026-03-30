@@ -152,6 +152,87 @@ void main() async {
     expect(defaultProfile?.id, created.id);
   });
 
+  test('Test database enforces a single default chatbot profile', () async {
+    final first = await service.createChatbotProfile(
+      ChatbotProfile(name: 'Default One', age: 30, profession: 'Writer', bio: 'First default profile.'),
+      isDefault: true,
+    );
+    final second = await service.createChatbotProfile(
+      ChatbotProfile(name: 'Default Two', age: 31, profession: 'Analyst', bio: 'Second default profile.'),
+      isDefault: true,
+    );
+
+    final defaultProfile = await service.getDefaultChatbotProfile();
+    final profiles = await service.getAllChatbotProfiles();
+    final defaultCount = profiles.where((profile) => profile.isDefault).length;
+    final firstProfile = await service.getChatbotProfile(first.id);
+    final secondProfile = await service.getChatbotProfile(second.id);
+
+    expect(defaultProfile, isNotNull);
+    expect(defaultProfile!.id, second.id);
+    expect(defaultCount, 1);
+    expect(firstProfile, isNotNull);
+    expect(firstProfile!.isDefault, isFalse);
+    expect(secondProfile, isNotNull);
+    expect(secondProfile!.isDefault, isTrue);
+  });
+
+  test('Test database set default chatbot profile clears previous default', () async {
+    final first = await service.createChatbotProfile(
+      ChatbotProfile(name: 'Alpha', age: 25, profession: 'Coach', bio: 'Encouraging persona.'),
+      isDefault: true,
+    );
+    final second = await service.createChatbotProfile(
+      ChatbotProfile(name: 'Beta', age: 26, profession: 'Mentor', bio: 'Structured helper persona.'),
+    );
+
+    await service.setDefaultChatbotProfile(second.id);
+
+    final defaultProfile = await service.getDefaultChatbotProfile();
+    final firstProfile = await service.getChatbotProfile(first.id);
+    final secondProfile = await service.getChatbotProfile(second.id);
+
+    expect(defaultProfile, isNotNull);
+    expect(defaultProfile!.id, second.id);
+    expect(firstProfile, isNotNull);
+    expect(firstProfile!.isDefault, isFalse);
+    expect(secondProfile, isNotNull);
+    expect(secondProfile!.isDefault, isTrue);
+  });
+
+  test('Test database update chatbot profile trims and nulls optional text fields', () async {
+    final created = await service.createChatbotProfile(
+      ChatbotProfile(
+        name: '  Prof  ',
+        age: 27,
+        profession: '  Engineer  ',
+        bio: '  Builds systems.  ',
+        speakingStyle: '  ',
+        tone: '  warm  ',
+      ),
+    );
+
+    await service.updateChatbotProfile(
+      created.copyWith(
+        name: '  Updated Name  ',
+        profession: '  Updated Profession  ',
+        bio: '  Updated Bio  ',
+        traits: '  ',
+        speakingStyle: '  concise  ',
+        tone: '  ',
+      ),
+    );
+
+    final updated = await service.getChatbotProfile(created.id);
+    expect(updated, isNotNull);
+    expect(updated!.name, 'Updated Name');
+    expect(updated.profession, 'Updated Profession');
+    expect(updated.bio, 'Updated Bio');
+    expect(updated.traits, isNull);
+    expect(updated.speakingStyle, 'concise');
+    expect(updated.tone, isNull);
+  });
+
   test('Test database create chat with profile linkage', () async {
     final profile = await service.createChatbotProfile(
       ChatbotProfile(name: 'Persona A', age: 35, profession: 'Therapist', bio: 'A calming and grounded assistant.'),

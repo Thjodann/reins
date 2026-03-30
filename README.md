@@ -42,5 +42,26 @@ You can find Android and Windows releases from [here](https://github.com/ibrahim
 ## Contributing
 Contributions are welcome! Feel free to fork the repository, make changes, and submit a pull request.
 
+## Local Regression Guardrails
+This project includes an optional local pre-commit workflow to catch common regressions before commits.
+
+- `scripts/precommit.sh` runs:
+  - `dart format --output=none --set-exit-if-changed lib test`
+  - `flutter analyze`
+- `.githooks/pre-commit` delegates to the script above.
+
+Enable it once per clone:
+
+```bash
+chmod +x scripts/precommit.sh .githooks/pre-commit
+git config core.hooksPath .githooks
+```
+
+You can also run checks manually:
+
+```bash
+bash scripts/precommit.sh
+```
+
 ## License
 Reins is licensed under the GPL-3.0.
