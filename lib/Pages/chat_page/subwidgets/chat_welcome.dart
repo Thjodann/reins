@@ -97,7 +97,7 @@ class _ChatConfigureServerAddressButton extends StatelessWidget {
       onPressed: () {
         Navigator.pushNamed(
           context,
-          '/settings',
+          '/settings/ollama',
           arguments: SettingsRouteArguments(autoFocusServerAddress: true),
         );
       },

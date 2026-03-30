@@ -13,8 +13,13 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 class ServerSettings extends StatefulWidget {
   final bool autoFocusServerAddress;
+  final bool showSectionTitle;
 
-  const ServerSettings({super.key, this.autoFocusServerAddress = false});
+  const ServerSettings({
+    super.key,
+    this.autoFocusServerAddress = false,
+    this.showSectionTitle = true,
+  });
 
   @override
   State<ServerSettings> createState() => _ServerSettingsState();
@@ -58,13 +63,15 @@ class _ServerSettingsState extends State<ServerSettings> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Server',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        const SizedBox(height: 16),
+        if (widget.showSectionTitle) ...[
+          Text(
+            'Server',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 16),
+        ],
         TextField(
           autofocus: widget.autoFocusServerAddress,
           controller: _serverAddressController,
